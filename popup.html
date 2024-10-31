@@ -4,213 +4,223 @@
     <title>Bug Report Generator</title>
     <style>
         body {
-            width: 500px;
+            width: 600px;
             padding: 15px;
             font-family: Arial, sans-serif;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
-        .step-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+
+        .form-group label {
+            display: block;
             margin-bottom: 5px;
+            font-weight: bold;
         }
-        .environment-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 5px;
-        }
-        .remove-btn {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            min-width: 28px;
-            height: 28px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-        }
-        .add-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-        .status {
-            display: none;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 3px;
-        }
-        input[type="text"], 
-        textarea, 
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
         select {
             width: 100%;
             padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
-        .reproduction-container {
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .step-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            white-space: nowrap;
-            overflow: hidden;
+            margin-bottom: 5px;
+            gap: 5px;
         }
-        .reproduction-container input[type="number"] {
-            width: 60px;
-            flex-shrink: 0;
+
+        .step-container span {
+            min-width: 25px;
         }
-        .reproduction-container select {
-            min-width: 100px;
+
+        .step-container input {
             flex: 1;
+            margin: 0;
         }
-        .reproduction-container span {
-            flex-shrink: 0;
-        }
-        .step-input {
-            width: calc(100% - 50px) !important;
-        }
-        #version {
-            min-height: 20px;
-            padding: 8px;
-            margin-top: 5px;
-            background: #f5f5f5;
-            border-radius: 3px;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 12px;
-            border: 1px solid #ddd;
-        }
-        .split-button-group {
-            display: inline-flex;
-            margin-right: 10px;
-        }
-        .split-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            border-radius: 3px 0 0 3px;
-        }
-        .split-button:hover {
-            background: #45a049;
-        }
-        .dropdown-toggle {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 8px 10px;
-            cursor: pointer;
-            border-left: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0 3px 3px 0;
+
+        .environment-container {
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-width: 24px;
+            margin-bottom: 5px;
+            gap: 5px;
         }
-        .dropdown-toggle:hover {
-            background: #45a049;
-        }
-        .dropdown-toggle::after {
-            content: "v";
-            font-size: 12px;
-        }
-        .screenshot-dropdown {
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            display: none;
-            z-index: 1000;
-        }
-        .screenshot-dropdown.show {
-            display: block;
-        }
-        .screenshot-dropdown button {
-            display: block;
-            width: 100%;
-            padding: 8px 16px;
+
+        .remove-btn {
+            padding: 5px 10px;
+            background-color: #ff4444;
+            color: white;
             border: none;
-            background: none;
+            border-radius: 4px;
             cursor: pointer;
-            text-align: left;
-            white-space: nowrap;
         }
-        .screenshot-dropdown button:hover {
-            background: #f5f5f5;
+
+        .remove-btn:hover {
+            background-color: #cc0000;
         }
+
         .button-container {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: 20px;
         }
+
+        .split-button-group {
+            position: relative;
+            display: flex;
+        }
+
+        #screenshotButton,
+        #copyButton {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #screenshotDropdownToggle {
+            padding: 10px 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-left: 1px solid #45a049;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        .screenshot-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .screenshot-dropdown.show {
+            display: block;
+        }
+
+        .screenshot-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .screenshot-dropdown button:hover {
+            background-color: #f0f0f0;
+        }
+
         .progress-bar {
             display: none;
             width: 100%;
             height: 4px;
-            background: #f0f0f0;
+            background-color: #f0f0f0;
+            margin-top: 10px;
             border-radius: 2px;
-            margin-top: 5px;
+            overflow: hidden;
         }
+
         .progress-bar-fill {
-            height: 100%;
-            background: #4CAF50;
-            border-radius: 2px;
             width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
             transition: width 0.3s ease;
         }
+
+        .status {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .reproduction-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .reproduction-container input[type="number"] {
+            width: 70px;
+        }
+
+        .reproduction-container select {
+            flex: 1;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
     </style>
+    <script src="popup.js"></script>
 </head>
 <body>
     <div class="form-group">
         <label for="title">Title:</label>
-        <input type="text" id="title" placeholder="[Type] - Brief Description">
+        <input type="text" id="title" placeholder="Enter bug title">
     </div>
 
     <div class="form-group">
-        <label>Description:</label>
+        <label for="observed">Description:</label>
         <div>
-            <textarea id="observed" rows="3" placeholder="Tester has observed that:"></textarea>
-        </div>
-        <div style="margin-top: 10px;">
-            <textarea id="expected" rows="3" placeholder="It is expected:"></textarea>
+            <textarea id="observed" placeholder="Tester has observed that:"></textarea>
+            <textarea id="expected" placeholder="It is expected:"></textarea>
         </div>
     </div>
 
     <div class="form-group">
         <label>Steps to recreate:</label>
         <div id="steps-container"></div>
-        <button id="addStep" class="add-btn">Add Step</button>
+        <button id="addStep">Add Step</button>
     </div>
 
     <div class="form-group">
         <label>Environment:</label>
         <div id="environments-container"></div>
-        <button id="addEnvironment" class="add-btn">Add Environment</button>
+        <button id="addEnvironment">Add Environment</button>
     </div>
 
     <div class="form-group">
+        <label for="scope">Scope:</label>
         <select id="scope">
-            <option>Believed to be global.</option>
-            <option>Believed to be device specific</option>
-            <option>Believed to be browser specific</option>
-            <option>Believed to only affect desktop environments.</option>
-            <option>Believed to only affect mobile environments.</option>
+            <option value="Believed to be global.">Believed to be global.</option>
+            <option value="Believed to be device specific.">Believed to be device specific.</option>
+            <option value="Believed to be browser specific.">Believed to be browser specific.</option>
+            <option value="Believed to only affect desktop environments.">Believed to only affect desktop environments.</option>
+            <option value="Believed to only affect mobile environments.">Believed to only affect mobile environments.</option>
         </select>
     </div>
 
@@ -223,12 +233,14 @@
         <label>Reproduction Rate:</label>
         <div class="reproduction-container">
             <input type="number" id="reproductionPercent" min="0" max="100" value="100">
-            <span>% - </span>
             <select id="reproductionDesc">
-                <option>Not reproducible.</option>
-                <option>Sporadic issue. Inconsistently reproducible.</option>
-                <option>Mostly reproducible. Exact cause not fully pinpointed.</option>
-                <option selected>Consistently reproducible. Can reproduce every time attempted.</option>
+                <option value="Not reproducible.">Not reproducible.</option>
+                <option value="Sporadic issue.">Sporadic issue.</option>
+                <option value="Inconsistently reproducible.">Inconsistently reproducible.</option>
+                <option value="Mostly reproducible.">Mostly reproducible.</option>
+                <option value="Exact cause not fully pinpointed.">Exact cause not fully pinpointed.</option>
+                <option value="Consistently reproducible.">Consistently reproducible.</option>
+                <option value="Can reproduce every time attempted.">Can reproduce every time attempted.</option>
             </select>
         </div>
     </div>
@@ -246,8 +258,8 @@
 
     <div class="button-container">
         <div class="split-button-group">
-            <button id="screenshotButton" class="split-button">Take Screenshot</button>
-            <button id="screenshotDropdownToggle" class="dropdown-toggle"></button>
+            <button id="screenshotButton">Take Screenshot</button>
+            <button id="screenshotDropdownToggle">▼</button>
             <div id="screenshotDropdown" class="screenshot-dropdown">
                 <button data-type="visible">Visible Area</button>
                 <button data-type="full">Full Page</button>
@@ -262,7 +274,5 @@
 
     <div id="copyStatus" class="status"></div>
     <div id="screenshotStatus" class="status"></div>
-
-    <script src="popup.js"></script>
 </body>
 </html>

@@ -7,7 +7,8 @@
     "activeTab",
     "downloads",
     "scripting",
-    "clipboardWrite"
+    "clipboardWrite",
+	"storage"
   ],
   "action": {
     "default_popup": "popup.html"
