@@ -162,7 +162,7 @@ async function takeScreenshot(type) {
             progressBar.style.display = 'block';
             progressBarFill.style.width = '0%';
             
-            // Execute script with proper permission handling
+            // Execute script to get full page dimensions
             const dimensions = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: () => {
@@ -172,7 +172,13 @@ async function takeScreenshot(type) {
                             document.documentElement.offsetHeight,
                             document.documentElement.clientHeight
                         ),
+                        scrollWidth: Math.max(
+                            document.documentElement.scrollWidth,
+                            document.documentElement.offsetWidth,
+                            document.documentElement.clientWidth
+                        ),
                         viewportHeight: window.innerHeight,
+                        viewportWidth: window.innerWidth,
                         devicePixelRatio: window.devicePixelRatio || 1
                     };
                 }
@@ -182,12 +188,12 @@ async function takeScreenshot(type) {
                 throw new Error('Failed to get page dimensions');
             }
 
-            const { scrollHeight, viewportHeight, devicePixelRatio } = dimensions[0].result;
+            const { scrollHeight, scrollWidth, viewportHeight, viewportWidth, devicePixelRatio } = dimensions[0].result;
             const totalSteps = Math.ceil(scrollHeight / viewportHeight);
 
-            // Create canvas for the full page
+            // Create canvas with proper dimensions
             const canvas = new OffscreenCanvas(
-                window.innerWidth * devicePixelRatio,
+                scrollWidth * devicePixelRatio,  // Use full document width instead of viewport width
                 scrollHeight * devicePixelRatio
             );
             const ctx = canvas.getContext('2d');
@@ -195,7 +201,7 @@ async function takeScreenshot(type) {
             // Get original scroll position
             const originalScroll = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                func: () => window.scrollY
+                func: () => ({ x: window.scrollX, y: window.scrollY })
             });
 
             // Capture each section
@@ -216,14 +222,14 @@ async function takeScreenshot(type) {
                 const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
                 const img = await loadImage(dataUrl);
                 
-                // Draw it on the canvas
+                // Draw it on the canvas at the correct position
                 ctx.drawImage(img, 0, i * viewportHeight * devicePixelRatio);
             }
 
             // Restore original scroll position
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
-                func: (scroll) => window.scrollTo(0, scroll),
+                func: (scroll) => window.scrollTo(scroll.x, scroll.y),
                 args: [originalScroll[0].result]
             });
 
