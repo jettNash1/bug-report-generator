@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Bug Report Generator",
-  "version": "2.5",
+  "version": "3.0",
   "description": "Generate bug reports with screenshots matching the Zoonou template",
- "permissions": [
+  "permissions": [
     "activeTab",
     "downloads",
     "scripting",
-    "clipboardWrite"
+    "clipboardWrite",
+    "storage" 
   ],
   "action": {
     "default_popup": "popup.html"
@@ -17,3 +18,4 @@
     "128": "icon128.png"
   }
 }
+
