@@ -1,218 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bug Report Generator Experimental</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>Bug Report Generator</title>
     <style>
+        :root {
+            /* Light theme variables */
+            --bg-color: white;
+            --text-color: black;
+            --input-bg: white;
+            --border-color: #ccc;
+            --dropdown-bg: white;
+            --hover-bg: #f5f5f5;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Dark theme variables */
+                --bg-color: #202124;
+                --text-color: #e8eaed;
+                --input-bg: #292a2d;
+                --border-color: #5f6368;
+                --dropdown-bg: #292a2d;
+                --hover-bg: #3c4043;
+            }
+        }
+
+        /* Then use variables throughout */
         body {
-            width: 500px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        input, textarea, select, .step-container, .environment-container, #version {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        select option {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .screenshot-dropdown {
+            background-color: var(--input-bg);
+            border-color: var(--border-color);
+        }
+
+        .screenshot-dropdown button {
+            color: var(--text-color);
+        }
+
+        .screenshot-dropdown button:hover {
+            background-color: var(--hover-bg);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-color);
+        }
+
+        /* Base styles */
+        body {
+            width: 600px;
             padding: 15px;
             font-family: Arial, sans-serif;
+            margin: 0;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
-        .step-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+
+        .form-group label {
+            display: block;
             margin-bottom: 5px;
+            font-weight: bold;
         }
-        .environment-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 5px;
-        }
-        .remove-btn {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            min-width: 28px;
-            height: 28px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: Arial, sans-serif;
-        }
-        .add-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-        .status {
-            display: none;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 3px;
-        }
-        input[type="text"], 
-        textarea, 
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
         select {
             width: 100%;
             padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
+            margin-bottom: 5px;
+            border: 1px solid;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
-        .reproduction-container {
+
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .step-container,
+        .environment-container {
             display: flex;
             align-items: center;
-            gap: 10px;
-            white-space: nowrap;
-            overflow: hidden;
+            margin-bottom: 5px;
+            gap: 5px;
+            border: 1px solid;
+            padding: 5px;
+            border-radius: 4px;
         }
-        .reproduction-container input[type="number"] {
-            width: 60px;
-            flex-shrink: 0;
+
+        .step-container span {
+            min-width: 25px;
         }
-        .reproduction-container select {
-            min-width: 100px;
+
+        .step-container input {
             flex: 1;
+            margin: 0;
         }
-        .reproduction-container span {
-            flex-shrink: 0;
-        }
-        .step-input {
-            width: calc(100% - 50px) !important;
-        }
-        #version {
-            min-height: 20px;
-            padding: 8px;
-            margin-top: 5px;
-            background: #f5f5f5;
-            border-radius: 3px;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 12px;
-            border: 1px solid #ddd;
-        }
-        .split-button-group {
-            display: inline-flex;
-            margin-right: 10px;
-        }
-        .split-button {
-            background: #4CAF50;
+
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 8px 16px;
+            border-radius: 4px;
             cursor: pointer;
-            border-radius: 3px 0 0 3px;
         }
-        .split-button:hover {
-            background: #45a049;
+
+        button:hover {
+            background-color: #45a049;
         }
-        .dropdown-toggle {
-            background: #4CAF50;
+
+        .remove-btn {
+            padding: 5px 10px;
+            background-color: #ff4444;
             color: white;
-            border: none;
-            padding: 8px 10px;
-            cursor: pointer;
-            border-left: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0 3px 3px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 24px;
         }
-        .dropdown-toggle:hover {
-            background: #45a049;
+
+        .remove-btn:hover {
+            background-color: #cc0000;
         }
-        .dropdown-toggle::after {
-            content: "v";
-            font-size: 12px;
-        }
-        .screenshot-dropdown {
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            display: none;
-            z-index: 1000;
-        }
-        .screenshot-dropdown.show {
-            display: block;
-        }
-        .screenshot-dropdown button {
-            display: block;
-            width: 100%;
-            padding: 8px 16px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            text-align: left;
-            white-space: nowrap;
-        }
-        .screenshot-dropdown button:hover {
-            background: #f5f5f5;
-        }
+
         .button-container {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: 20px;
         }
+
+        .split-button-group {
+            position: relative;
+            display: flex;
+        }
+
+        #screenshotButton {
+            border-radius: 4px 0 0 4px;
+        }
+
+        #screenshotDropdownToggle {
+            padding: 10px 5px;
+            border-left: 1px solid #45a049;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .screenshot-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            border: 1px solid;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .screenshot-dropdown.show {
+            display: block;
+        }
+
+        .screenshot-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            text-align: left;
+        }
+
+        #clearButton {
+            background-color: #dc3545;
+        }
+
+        #clearButton:hover {
+            background-color: #c82333;
+        }
+
         .progress-bar {
             display: none;
             width: 100%;
             height: 4px;
-            background: #f0f0f0;
+            background-color: #cccccc;
+            margin-top: 10px;
             border-radius: 2px;
-            margin-top: 5px;
+            overflow: hidden;
         }
+
         .progress-bar-fill {
-            height: 100%;
-            background: #4CAF50;
-            border-radius: 2px;
             width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
             transition: width 0.3s ease;
         }
-		.clear-button {
-			background-color: #dc3545;
-		}
 
-		.clear-button:hover {
-			background-color: #c82333;
-		}
+        .status {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid;
+        }
 
+        .reproduction-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .reproduction-container input[type="number"] {
+            width: 70px;
+        }
+
+        .reproduction-container select {
+            flex: 1;
+        }
+
+        #version {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 4px;
+            min-height: 20px;
+            display: block;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: visible;
+        }
+
+        .save-indicator {
+            font-size: 0.8em;
+            color: var(--text-color);
+            text-align: right;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
+    <!-- Rest of your HTML stays exactly the same -->
     <div class="form-group">
-        <label for="title">Title:</label>
-        <input type="text" id="title" placeholder="[Type] - Brief Description">
+        <label for="title" aria-required="true">Title:</label>
+        <input type="text" id="title" placeholder="Enter bug title" aria-label="Bug title" required>
     </div>
 
     <div class="form-group">
         <label>Description:</label>
         <div>
-            <textarea id="observed" rows="3" placeholder="Tester has observed that:"></textarea>
-        </div>
-        <div style="margin-top: 10px;">
-            <textarea id="expected" rows="3" placeholder="It is expected:"></textarea>
+            <textarea id="observed" placeholder="Tester has observed that:"></textarea>
+            <textarea id="expected" placeholder="It is expected:"></textarea>
         </div>
     </div>
 
     <div class="form-group">
         <label>Steps to recreate:</label>
         <div id="steps-container"></div>
-        <button id="addStep" class="add-btn">Add Step</button>
+        <button class="add-step-btn" id="addStepButton">Add Step</button>
     </div>
 
     <div class="form-group">
         <label>Environment:</label>
         <div id="environments-container"></div>
-        <button id="addEnvironment" class="add-btn">Add Environment</button>
+        <button class="add-environment-btn" id="addEnvironmentButton">Add Environment</button>
     </div>
 
     <div class="form-group">
+        <label for="scope">Scope:</label>
         <select id="scope">
             <option>Believed to be global.</option>
             <option>Believed to be device specific</option>
@@ -230,11 +298,11 @@
     <div class="form-group">
         <label>Reproduction Rate:</label>
         <div class="reproduction-container">
-            <input type="number" id="reproductionPercent" min="0" max="100" value="100">
-            <span>% - </span>
+            <input type="number" id="reproductionPercent" value="100" min="0" max="100">
             <select id="reproductionDesc">
                 <option>Not reproducible.</option>
-                <option>Sporadic issue. Inconsistently reproducible.</option>
+                <option>Sporadic issue.</option>
+                <option>Inconsistently reproducible.</option>
                 <option>Mostly reproducible. Exact cause not fully pinpointed.</option>
                 <option selected>Consistently reproducible. Can reproduce every time attempted.</option>
             </select>
@@ -252,25 +320,29 @@
         </select>
     </div>
 
+    <div id="saveIndicator" class="save-indicator" role="status" aria-live="polite"></div>
+
     <div class="button-container">
         <div class="split-button-group">
-            <button id="screenshotButton" class="split-button">Take Screenshot</button>
-            <button id="screenshotDropdownToggle" class="dropdown-toggle"></button>
+            <button id="screenshotButton">Take Screenshot</button>
+            <button id="screenshotDropdownToggle">▼</button>
             <div id="screenshotDropdown" class="screenshot-dropdown">
                 <button data-type="visible">Visible Area</button>
                 <button data-type="full">Full Page</button>
             </div>
         </div>
-        <button id="copyButton">Copy to Clipboard</button>
-		<button id="clearButton" class="clear-button">Clear Form</button>
+        <button id="copyButton" aria-label="Copy report to clipboard" tabindex="0">
+            Copy to Clipboard
+        </button>
+        <button id="clearButton">Clear Form</button>
     </div>
 
     <div id="screenshotProgress" class="progress-bar">
         <div id="screenshotProgressFill" class="progress-bar-fill"></div>
     </div>
 
-    <div id="copyStatus" class="status"></div>
-    <div id="screenshotStatus" class="status"></div>
+    <div role="alert" aria-live="polite" id="copyStatus" class="status"></div>
+    <div role="alert" aria-live="polite" id="screenshotStatus" class="status"></div>
 
     <script src="popup.js"></script>
 </body>

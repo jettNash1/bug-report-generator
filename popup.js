@@ -1,3 +1,559 @@
+// 1. Error Classes
+class NetworkError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'NetworkError';
+    }
+}
+
+class StorageError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'StorageError';
+    }
+}
+
+
+// 2. Utility Functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+
+// 3. Core Services
+const ErrorHandler = {
+    errors: new Map(),
+    
+    handle(error, context) {
+        const errorId = Date.now();
+        this.errors.set(errorId, { error, context, timestamp: new Date() });
+        
+        console.error(`[${context}]`, error);
+        
+        if (error instanceof NetworkError) {
+            this.showUserError('Network connection issue. Please try again.');
+        } else if (error instanceof StorageError) {
+            this.showUserError('Unable to save changes. Please check your storage.');
+        } else {
+            this.showUserError('An unexpected error occurred.');
+        }
+        
+        this.cleanup();
+    },
+    
+    showUserError(message) {
+        const status = document.getElementById('copyStatus');
+        status.textContent = message;
+        status.style.color = 'red';
+        status.style.display = 'block';
+        setTimeout(() => status.style.display = 'none', 3000);
+    },
+    
+    cleanup() {
+        const oneHourAgo = Date.now() - (60 * 60 * 1000);
+        for (const [id, {timestamp}] of this.errors) {
+            if (timestamp < oneHourAgo) {
+                this.errors.delete(id);
+            }
+        }
+    }
+};
+
+const FormManager = {
+    getFormData() {
+        return {
+            title: document.getElementById('title')?.value || '',
+            observed: document.getElementById('observed')?.value || '',
+            expected: document.getElementById('expected')?.value || '',
+            scope: document.getElementById('scope')?.value || '',
+            reproductionPercent: document.getElementById('reproductionPercent')?.value || '',
+            reproductionDesc: document.getElementById('reproductionDesc')?.value || '',
+            severity: document.getElementById('severity')?.value || '',
+            steps: Array.from(document.getElementById('steps-container').querySelectorAll('.step-container'))
+                .map(container => ({
+                    number: container.querySelector('span').textContent,
+                    description: container.querySelector('input').value
+                })),
+            environments: Array.from(document.getElementById('environments-container').querySelectorAll('input'))
+                .map(input => input.value)
+        };
+    },
+
+    async saveForm() {
+        try {
+            const formData = this.getFormData();
+            await PerformanceMonitor.measure('save-form', async () => {
+                await AutoSaveManager.add(formData);
+            });
+            FormStateManager.markDirty();
+        } catch (err) {
+            ErrorHandler.handle(err instanceof Error ? err : new StorageError('Failed to save form data'));
+        }
+    },
+
+    addStep() {
+        const container = document.createElement('div');
+        container.className = 'step-container';
+        const stepNumber = document.querySelectorAll('.step-container').length + 1;
+        
+        container.innerHTML = `
+            <span>${stepNumber}.</span>
+            <input type="text" placeholder="Enter step description">
+            <button class="remove-btn">X</button>
+        `;
+
+        const removeButton = container.querySelector('.remove-btn');
+        removeButton.addEventListener('click', () => {
+            container.remove();
+            this.renumberSteps();
+            this.saveForm();
+        });
+
+        document.getElementById('steps-container').appendChild(container);
+        container.querySelector('input').focus();
+    },
+
+    renumberSteps() {
+        document.querySelectorAll('.step-container span').forEach((span, index) => {
+            span.textContent = `${index + 1}.`;
+        });
+    },
+
+    clearForm() {
+        document.getElementById('title').value = '';
+        document.getElementById('observed').value = '';
+        document.getElementById('expected').value = '';
+        document.getElementById('steps-container').innerHTML = '';
+        document.getElementById('environments-container').innerHTML = '';
+        document.getElementById('scope').selectedIndex = 0;
+        document.getElementById('reproductionDesc').selectedIndex = 0;
+        document.getElementById('severity').selectedIndex = 0;
+        
+        // Add initial step after clearing
+        FormManager.addStep();
+        
+        // Re-detect environment
+        EnvironmentManager.detectEnvironment();
+        
+        // Note: We're no longer clearing reproductionPercent
+    },
+
+    async loadSavedForm() {
+        try {
+            const result = await chrome.storage.local.get('formData');
+            if (result.formData) {
+                const formData = result.formData;
+                Object.keys(formData).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element && !Array.isArray(formData[key])) {
+                        element.value = formData[key];
+                    }
+                });
+
+                // Handle steps
+                const stepsContainer = document.getElementById('steps-container');
+                stepsContainer.innerHTML = '';
+                if (formData.steps && formData.steps.length > 0) {
+                    formData.steps.forEach(step => {
+                        const container = document.createElement('div');
+                        container.className = 'step-container';
+                        container.innerHTML = `
+                            <span>${step.number}</span>
+                            <input type="text" value="${step.description}" placeholder="Enter step description">
+                            <button class="remove-btn">X</button>
+                        `;
+                        stepsContainer.appendChild(container);
+                    });
+                } else {
+                    this.addStep();
+                }
+
+                // Handle environments
+                const environmentsContainer = document.getElementById('environments-container');
+                environmentsContainer.innerHTML = '';
+                if (formData.environments && formData.environments.length > 0) {
+                    formData.environments.forEach(env => {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = env;
+                        environmentsContainer.appendChild(input);
+                    });
+                }
+            }
+        } catch (err) {
+            ErrorHandler.handle(err, 'Load Form');
+        }
+    }
+};
+
+const FormStateManager = {
+    state: {
+        isDirty: false,
+        lastSaved: null,
+        errors: []
+    },
+    markDirty() {
+        this.state.isDirty = true;
+        this.updateUI();
+    },
+    markClean() {
+        this.state.isDirty = false;
+        this.state.lastSaved = new Date();
+        this.updateUI();
+    },
+    updateUI() {
+        const saveIndicator = document.getElementById('saveIndicator');
+        if (saveIndicator) {
+            saveIndicator.textContent = this.state.isDirty ? 
+                'Unsaved changes' : 
+                `Last saved: ${this.state.lastSaved?.toLocaleTimeString()}`;
+        }
+    }
+};
+
+const KeyboardManager = {
+    init() {
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                FormManager.saveForm();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !window.getSelection().toString()) {
+                e.preventDefault();
+                document.getElementById('copyButton').click();
+            }
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+            }
+        });
+    }
+};
+
+const AutoSaveManager = {
+    queue: [],
+    isProcessing: false,
+    
+    async add(data) {
+        this.queue.push(data);
+        if (!this.isProcessing) {
+            await this.process();
+        }
+    },
+    
+    async process() {
+        this.isProcessing = true;
+        while (this.queue.length > 0) {
+            const data = this.queue.shift();
+            try {
+                await chrome.storage.local.set({ formData: data });
+                FormStateManager.markClean();
+            } catch (error) {
+                ErrorHandler.handle(error, 'AutoSave');
+                this.queue.unshift(data);
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        }
+        this.isProcessing = false;
+    }
+};
+
+const PerformanceMonitor = {
+    metrics: new Map(),
+    
+    startTimer(label) {
+        this.metrics.set(label, performance.now());
+    },
+    
+    endTimer(label) {
+        const start = this.metrics.get(label);
+        if (start) {
+            const duration = performance.now() - start;
+            console.debug(`${label} took ${duration.toFixed(2)}ms`);
+            this.metrics.delete(label);
+            return duration;
+        }
+    },
+    
+    async measure(label, fn) {
+        this.startTimer(label);
+        const result = await fn();
+        this.endTimer(label);
+        return result;
+    }
+};
+
+const CopyManager = {
+    async generateReport() {
+        const formData = FormManager.getFormData();
+        const severity = document.getElementById('severity');
+        const severityText = severity.options[severity.selectedIndex].text;
+
+        let observed = formData.observed.replace(/^Tester has observed that:\s*/, '');
+        let expected = formData.expected.replace(/^It is expected:\s*/, '');
+
+        const steps = Array.from(document.getElementById('steps-container').querySelectorAll('.step-container'))
+            .map(container => {
+                const number = container.querySelector('span').textContent;
+                const description = container.querySelector('input').value;
+                return `${number} ${description}`;
+            })
+            .join('\n');
+
+        const environments = formData.environments.filter(value => value.trim() !== '').join('\n');
+
+        const bugReport = `Title: ${formData.title}\n\n` +
+            `Observed: ${observed}\n\n` +
+            `Expected: ${expected}\n\n` +
+            `Steps to Reproduce:\n${steps}\n\n` +
+            `Environment:\n${environments}\n\n` +
+            `Scope: ${formData.scope}\n` +
+            `Reproduction: ${formData.reproductionPercent}%\n` +
+            `Reproduction Description: ${formData.reproductionDesc}\n` +
+            `Severity: ${severityText}`;
+
+        return bugReport;
+    },
+
+    async copyToClipboard() {
+        try {
+            const bugReport = await this.generateReport();
+            await navigator.clipboard.writeText(bugReport);
+            const copyStatus = document.getElementById('copyStatus');
+            copyStatus.textContent = 'Copied to clipboard!';
+            copyStatus.style.color = '#4CAF50';
+            copyStatus.style.display = 'block';
+            setTimeout(() => copyStatus.style.display = 'none', 3000);
+        } catch (err) {
+            ErrorHandler.handle(err, 'Copy');
+        }
+    }
+};
+
+const EnvironmentManager = {
+    async detectEnvironment() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab?.id) return;
+
+            const envInfo = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: () => {
+                    const getOS = () => {
+                        const userAgent = window.navigator.userAgent;
+                        if (userAgent.includes('Windows NT 10.0')) return 'Windows 11';
+                        if (userAgent.includes('Windows NT 6.3')) return 'Windows 8.1';
+                        if (userAgent.includes('Windows NT 6.2')) return 'Windows 8';
+                        if (userAgent.includes('Windows NT 6.1')) return 'Windows 7';
+                        if (userAgent.includes('Windows')) return 'Windows';
+                        if (userAgent.includes('Mac')) return 'MacOS';
+                        if (userAgent.includes('Linux')) return 'Linux';
+                        return 'Unknown OS';
+                    };
+
+                    const getBrowserVersion = () => {
+                        const match = navigator.userAgent.match(/(chrome|firefox|safari|edge|opera(?=\/))\/?\s*(\d+)/i);
+                        if (match) {
+                            const browser = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                            return `${browser} ${match[2]}.0.0`;
+                        }
+                        return 'Unknown Browser';
+                    };
+
+                    return {
+                        os: getOS(),
+                        browserVersion: getBrowserVersion(),
+                        url: window.location.href
+                    };
+                }
+            });
+
+            if (envInfo?.[0]?.result) {
+                const { os, browserVersion, url } = envInfo[0].result;
+                const container = document.getElementById('environments-container');
+                const versionElement = document.getElementById('version');
+                
+                // Clear existing content
+                container.innerHTML = '';
+                
+                // Format current date
+                const currentDate = new Date().toLocaleDateString('en-GB', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                
+                // Add single environment input with new format
+                const envInput = document.createElement('input');
+                envInput.type = 'text';
+                envInput.value = `${os} - ${browserVersion}`;
+                container.appendChild(envInput);
+
+                // Set version with new format
+                if (versionElement) {
+                    versionElement.textContent = `${url} - ${currentDate}`;
+                }
+            }
+        } catch (err) {
+            console.error('Environment detection error:', err);
+            // Fallback for edge:// pages or other restricted URLs
+            const container = document.getElementById('environments-container');
+            const versionElement = document.getElementById('version');
+            
+            if (container) {
+                container.innerHTML = '';
+                const envInput = document.createElement('input');
+                envInput.type = 'text';
+                envInput.value = 'Unable to detect environment';
+                container.appendChild(envInput);
+            }
+            
+            if (versionElement) {
+                versionElement.textContent = 'Unable to detect version';
+            }
+        }
+    }
+};
+
+
+// 4. Screenshot Functions
+async function captureVisibleArea() {
+    const screenshotStatus = document.getElementById('screenshotStatus');
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        
+        await chrome.downloads.download({
+            url: screenshot,
+            filename: `bug-report-screenshot-${timestamp}.png`,
+            saveAs: true
+        });
+
+        screenshotStatus.textContent = 'Screenshot saved!';
+        screenshotStatus.style.color = '#4CAF50';
+        screenshotStatus.style.display = 'block';
+        setTimeout(() => {
+            screenshotStatus.style.display = 'none';
+        }, 3000);
+    } catch (err) {
+        ErrorHandler.handle(err, 'Screenshot');
+    }
+}
+
+async function captureFullPage() {
+    const progressBar = document.getElementById('screenshotProgress');
+    const progressBarFill = document.getElementById('screenshotProgressFill');
+    const screenshotStatus = document.getElementById('screenshotStatus');
+
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        
+        if (!tab?.id) {
+            throw new Error('No active tab found');
+        }
+
+        progressBar.style.display = 'block';
+        progressBarFill.style.width = '0%';
+        
+        const dimensions = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => ({
+                scrollHeight: Math.max(
+                    document.documentElement.scrollHeight,
+                    document.documentElement.offsetHeight,
+                    document.documentElement.clientHeight
+                ),
+                scrollWidth: Math.max(
+                    document.documentElement.scrollWidth,
+                    document.documentElement.offsetWidth,
+                    document.documentElement.clientWidth
+                ),
+                viewportHeight: window.innerHeight,
+                viewportWidth: window.innerWidth,
+                devicePixelRatio: window.devicePixelRatio || 1
+            })
+        });
+
+        if (!dimensions?.[0]?.result) {
+            throw new Error('Failed to get page dimensions');
+        }
+
+        const { scrollHeight, scrollWidth, viewportHeight, devicePixelRatio } = dimensions[0].result;
+        const canvas = new OffscreenCanvas(scrollWidth * devicePixelRatio, scrollHeight * devicePixelRatio);
+        const ctx = canvas.getContext('2d');
+        
+        const totalSteps = Math.ceil(scrollHeight / viewportHeight);
+        // Store original scroll position
+        const originalScroll = await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: () => ({ x: window.scrollX, y: window.scrollY })
+        });
+
+        // Capture viewports with rate limiting
+        for (let i = 0; i < totalSteps; i++) {
+            progressBarFill.style.width = `${(i / totalSteps) * 100}%`;
+            
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: (top) => window.scrollTo(0, top),
+                args: [i * viewportHeight]
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 250));
+            
+            const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
+            const img = await createImageBitmap(await (await fetch(screenshot)).blob());
+            
+            ctx.drawImage(img, 0, i * viewportHeight * devicePixelRatio);
+            
+            // Add delay between captures
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+
+        // Restore original scroll position
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: (scroll) => window.scrollTo(scroll.x, scroll.y),
+            args: [originalScroll[0].result]
+        });
+        
+        progressBarFill.style.width = '100%';
+        
+        const blob = await canvas.convertToBlob({ type: 'image/png' });
+        const url = URL.createObjectURL(blob);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        
+        await chrome.downloads.download({
+            url: url,
+            filename: `bug-report-full-screenshot-${timestamp}.png`,
+            saveAs: true
+        });
+        
+        URL.revokeObjectURL(url);
+        progressBar.style.display = 'none';
+        
+        screenshotStatus.textContent = 'Full page screenshot saved!';
+        screenshotStatus.style.color = '#4CAF50';
+        screenshotStatus.style.display = 'block';
+        setTimeout(() => {
+            screenshotStatus.style.display = 'none';
+        }, 3000);
+    } catch (err) {
+        ErrorHandler.handle(err, 'Screenshot');
+        if (progressBar) progressBar.style.display = 'none';
+    }
+}
+
+
+// 5. Event Listeners
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Extension initialized - Starting setup...');
 
@@ -9,540 +565,104 @@ document.addEventListener('DOMContentLoaded', async () => {
     const screenshotStatus = document.getElementById('screenshotStatus');
     const stepsContainer = document.getElementById('steps-container');
     const environmentsContainer = document.getElementById('environments-container');
-    const versionDisplay = document.getElementById('version');
-    const progressBar = document.getElementById('screenshotProgress');
-    const progressBarFill = document.getElementById('screenshotProgressFill');
+    const clearButton = document.getElementById('clearButton');
+    const addStepButton = document.getElementById('addStepButton');
+    const addEnvironmentButton = document.getElementById('addEnvironmentButton');
 
-    // Function to save form data
-    async function saveFormData() {
-        const formData = {
-            title: document.getElementById('title')?.value || '',
-            observed: document.getElementById('observed')?.value || '',
-            expected: document.getElementById('expected')?.value || '',
-            scope: document.getElementById('scope')?.value || '',
-            reproductionPercent: document.getElementById('reproductionPercent')?.value || '',
-            reproductionDesc: document.getElementById('reproductionDesc')?.value || '',
-            severity: document.getElementById('severity')?.value || '',
-            steps: Array.from(stepsContainer.querySelectorAll('.step-container'))
-                .map(container => ({
-                    number: container.querySelector('span').textContent,
-                    description: container.querySelector('input').value
-                })),
-            environments: Array.from(environmentsContainer.querySelectorAll('input'))
-                .map(input => input.value)
-        };
+    // Initialize managers
+    KeyboardManager.init();
+    FormStateManager.markClean();
+    PerformanceMonitor.startTimer('popup-init');
 
-        try {
-            await chrome.storage.local.set({ formData });
-            console.log('Form data saved:', formData);
-        } catch (err) {
-            console.error('Error saving form data:', err);
-        }
+    // Setup error handling
+    window.onerror = (msg, source, line, col, error) => {
+        ErrorHandler.handle(error || new Error(msg), 'window');
+    };
+
+    // Load saved form data
+    await FormManager.loadSavedForm();
+
+    // Event listeners
+    copyButton.addEventListener('click', () => CopyManager.copyToClipboard());
+    screenshotButton.addEventListener('click', () => captureVisibleArea());
+    clearButton.addEventListener('click', () => FormManager.clearForm());
+    if (addStepButton) {
+        addStepButton.addEventListener('click', () => FormManager.addStep());
     }
-
-    async function restoreFormData() {
-        try {
-            const { formData } = await chrome.storage.local.get('formData');
-            if (!formData) return;
-
-            console.log('Restoring form data:', formData);
-
-            // Restore basic fields
-            if (document.getElementById('title')) document.getElementById('title').value = formData.title || '';
-            if (document.getElementById('observed')) document.getElementById('observed').value = formData.observed || '';
-            if (document.getElementById('expected')) document.getElementById('expected').value = formData.expected || '';
-            if (document.getElementById('scope')) document.getElementById('scope').value = formData.scope || '';
-            if (document.getElementById('reproductionPercent')) document.getElementById('reproductionPercent').value = formData.reproductionPercent || '';
-            if (document.getElementById('reproductionDesc')) document.getElementById('reproductionDesc').value = formData.reproductionDesc || '';
-            if (document.getElementById('severity')) document.getElementById('severity').value = formData.severity || '';
-
-            // Only restore steps if we have saved steps
-            if (formData.steps && formData.steps.length > 0) {
-                stepsContainer.innerHTML = '';
-                formData.steps.forEach(step => {
-                    const stepContainer = document.createElement('div');
-                    stepContainer.className = 'step-container';
-                    stepContainer.innerHTML = `
-                        <span>${step.number}</span>
-                        <input type="text" class="step-input" value="${step.description}" placeholder="Enter step description">
-                        <button class="remove-btn">X</button>
-                    `;
-
-                    const removeButton = stepContainer.querySelector('.remove-btn');
-                    removeButton.addEventListener('click', () => {
-                        stepContainer.remove();
-                        renumberSteps();
-                        saveFormData();
-                    });
-
-                    stepsContainer.appendChild(stepContainer);
-                });
-            }
-
-            // Only restore environments if we have saved environments
-            if (formData.environments && formData.environments.length > 0) {
-                environmentsContainer.innerHTML = '';
-                formData.environments.forEach(env => {
-                    const envContainer = document.createElement('div');
-                    envContainer.className = 'environment-container';
-                    envContainer.innerHTML = `
-                        <input type="text" value="${env}" placeholder="OS - Browser - Device" style="flex: 1">
-                        <button class="remove-btn">X</button>
-                    `;
-
-                    const removeButton = envContainer.querySelector('.remove-btn');
-                    removeButton.addEventListener('click', () => {
-                        envContainer.remove();
-                        saveFormData();
-                    });
-
-                    environmentsContainer.appendChild(envContainer);
-                });
-            }
-        } catch (err) {
-            console.error('Error restoring form data:', err);
-        }
-    }
-
-    // Function to clear form
-    async function clearForm() {
-        try {
-            // Clear all input fields
-            document.getElementById('title').value = '';
-            document.getElementById('observed').value = '';
-            document.getElementById('expected').value = '';
-            document.getElementById('scope').value = 'Believed to be global.';
-            document.getElementById('reproductionPercent').value = '100';
-            document.getElementById('reproductionDesc').value = 'Not reproducible.';
-            document.getElementById('severity').value = '1';
-
-            // Clear steps container
-            stepsContainer.innerHTML = '';
-            addStep(); // Add one fresh step
-
-            // Clear environments container
-            environmentsContainer.innerHTML = '';
-            addEnvironment(); // Add one fresh environment
-
-            // Clear the stored data
-            await chrome.storage.local.remove('formData');
-            
-            // Show success message
-            copyStatus.textContent = 'Form cleared!';
-            copyStatus.style.color = '#4CAF50';
-            copyStatus.style.display = 'block';
-            setTimeout(() => {
-                copyStatus.style.display = 'none';
-            }, 2000);
-
-            console.log('Form cleared successfully');
-        } catch (err) {
-            console.error('Error clearing form:', err);
-            copyStatus.textContent = 'Error clearing form!';
-            copyStatus.style.color = 'red';
-            copyStatus.style.display = 'block';
-            setTimeout(() => {
-                copyStatus.style.display = 'none';
-            }, 2000);
-        }
-    }
-
-    // Set up version display with current URL and date
-    async function setupVersion() {
-        console.log('Setting up version display...');
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            const today = new Date();
-            const dateStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-            const versionStr = `${tab.url} - ${dateStr}`;
-            
-            console.log('Version components:', {
-                url: tab.url,
-                date: dateStr
-            });
-
-            if (!tab.url) {
-                console.error('URL not found in current tab');
-                throw new Error('URL not found');
-            }
-
-            versionDisplay.textContent = versionStr;
-            console.log('Version display successfully set:', versionStr);
-        } catch (err) {
-            console.error('Failed to set version display:', err);
-            versionDisplay.textContent = 'Error loading version';
-        }
-    }
-
-    // Initialize version display
-    await setupVersion();
-
-    function addStep() {
-        console.log('Add Step button clicked');
-        
-        if (!stepsContainer) {
-            console.error('Steps container not found!');
-            return;
-        }
-
-        const stepNumber = stepsContainer.children.length + 1;
-        console.log('Creating step number:', stepNumber);
-
-        const stepContainer = document.createElement('div');
-        stepContainer.className = 'step-container';
-        
-        stepContainer.innerHTML = `
-            <span>${stepNumber}.</span>
-            <input type="text" class="step-input" placeholder="Enter step description">
-            <button class="remove-btn">X</button>
-        `;
-
-        const removeButton = stepContainer.querySelector('.remove-btn');
-        if (!removeButton) {
-            console.error('Failed to create remove button');
-            return;
-        }
-
-        removeButton.addEventListener('click', () => {
-            console.log('Removing step:', stepNumber);
-            stepContainer.remove();
-            renumberSteps();
-            saveFormData();
+    
+    if (addEnvironmentButton) {
+        addEnvironmentButton.addEventListener('click', () => {
+            const container = document.getElementById('environments-container');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Enter environment detail';
+            container.appendChild(input);
+            input.focus();
+            debouncedSaveForm();
         });
-
-        stepsContainer.appendChild(stepContainer);
-        console.log('Step added successfully');
-        saveFormData();
     }
 
-    function addEnvironment() {
-        console.log('Add Environment button clicked');
-        
-        if (!environmentsContainer) {
-            console.error('Environments container not found!');
-            return;
-        }
-
-        const envContainer = document.createElement('div');
-        envContainer.className = 'environment-container';
-        
-        envContainer.innerHTML = `
-            <input type="text" placeholder="OS - Browser - Device" style="flex: 1">
-            <button class="remove-btn">X</button>
-        `;
-
-        const removeButton = envContainer.querySelector('.remove-btn');
-        if (!removeButton) {
-            console.error('Failed to create remove button');
-            return;
-        }
-
-        removeButton.addEventListener('click', () => {
-            console.log('Removing environment');
-            envContainer.remove();
-            saveFormData();
-        });
-
-        environmentsContainer.appendChild(envContainer);
-        console.log('Environment added successfully');
-        saveFormData();
-    }
-
-    function renumberSteps() {
-        console.log('Renumbering steps...');
-        const stepContainers = stepsContainer.querySelectorAll('.step-container');
-        stepContainers.forEach((container, index) => {
-            const stepNumber = container.querySelector('span');
-            if (stepNumber) {
-                stepNumber.textContent = `${index + 1}.`;
-            }
-        });
-        console.log('Steps renumbered. New count:', stepContainers.length);
-    }
-
-    // Screenshot functionality
-    screenshotButton.addEventListener('click', () => {
-        takeScreenshot('visible');
-    });
-
-    dropdownToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
+    dropdownToggle.addEventListener('click', () => {
         dropdown.classList.toggle('show');
     });
+    dropdown.querySelectorAll('button').forEach(button => {
+        button.addEventListener('click', () => {
+            const type = button.dataset.type;
+            if (type === 'visible') {
+                captureVisibleArea();
+            } else if (type === 'full') {
+                captureFullPage();
+            }
+            dropdown.classList.remove('show');
+        });
+    });
 
-    dropdown.addEventListener('click', (e) => {
-        const button = e.target.closest('button');
-        if (button) {
-            takeScreenshot(button.dataset.type);
+    document.addEventListener('click', (event) => {
+        if (!event.target.matches('#screenshotDropdownToggle')) {
             dropdown.classList.remove('show');
         }
     });
 
-    document.addEventListener('click', () => {
-        dropdown.classList.remove('show');
+    // Add form input event listeners
+    const formInputs = document.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('input', () => {
+            debouncedSaveForm();
+            FormStateManager.markDirty();
+        });
     });
 
-    // Helper function to load image from data URL
-    function loadImage(dataUrl) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = dataUrl;
-        });
-    }
-
-    async function takeScreenshot(type) {
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            
-            if (type === 'full') {
-                progressBar.style.display = 'block';
-                progressBarFill.style.width = '0%';
-                
-                // Execute script to get full page dimensions
-                const dimensions = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: () => {
-                        return {
-                            scrollHeight: Math.max(
-                                document.documentElement.scrollHeight,
-                                document.documentElement.offsetHeight,
-                                document.documentElement.clientHeight
-                            ),
-                            scrollWidth: Math.max(
-                                document.documentElement.scrollWidth,
-                                document.documentElement.offsetWidth,
-                                document.documentElement.clientWidth
-                            ),
-                            viewportHeight: window.innerHeight,
-                            viewportWidth: window.innerWidth,
-                            devicePixelRatio: window.devicePixelRatio || 1
-                        };
-                    }
-                });
-
-                if (!dimensions || !dimensions[0]?.result) {
-                    throw new Error('Failed to get page dimensions');
-                }
-
-                const { scrollHeight, scrollWidth, viewportHeight, viewportWidth, devicePixelRatio } = dimensions[0].result;
-                const totalSteps = Math.ceil(scrollHeight / viewportHeight);
-
-                // Create canvas with proper dimensions
-                const canvas = new OffscreenCanvas(
-                    scrollWidth * devicePixelRatio,
-                    scrollHeight * devicePixelRatio
-                );
-                const ctx = canvas.getContext('2d');
-
-                // Get original scroll position
-                const originalScroll = await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: () => ({ x: window.scrollX, y: window.scrollY })
-                });
-
-                // Capture each section
-                for (let i = 0; i < totalSteps; i++) {
-                    progressBarFill.style.width = `${(i / totalSteps) * 100}%`;
-                    
-                    // Scroll to position
-                    await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        func: (scrollTo) => window.scrollTo(0, scrollTo),
-                        args: [i * viewportHeight]
-                    });
-
-                    // Wait for any reflow/repaint
-                    await new Promise(resolve => setTimeout(resolve, 150));
-
-                    // Capture the viewport
-                    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-                    const img = await loadImage(dataUrl);
-                    
-                    // Draw it on the canvas at the correct position
-                    ctx.drawImage(img, 0, i * viewportHeight * devicePixelRatio);
-                }
-
-                // Restore original scroll position
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    func: (scroll) => window.scrollTo(scroll.x, scroll.y),
-                    args: [originalScroll[0].result]
-                });
-
-                // Complete the progress bar
-                progressBarFill.style.width = '100%';
-
-                // Convert to blob and download
-                const blob = await canvas.convertToBlob({ type: 'image/png' });
-                const url = URL.createObjectURL(blob);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-
-                await chrome.downloads.download({
-                    url: url,
-                    filename: `bug-report-full-screenshot-${timestamp}.png`,
-                    saveAs: true
-                });
-
-                URL.revokeObjectURL(url);
-                progressBar.style.display = 'none';
-
-                screenshotStatus.textContent = 'Full page screenshot saved!';
-                screenshotStatus.style.color = '#4CAF50';
-                screenshotStatus.style.display = 'block';
-            } else {
-                // Regular screenshot (visible area)
-                const screenshot = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                
-                await chrome.downloads.download({
-                    url: screenshot,
-                    filename: `bug-report-screenshot-${timestamp}.png`,
-                    saveAs: true
-                });
-
-                screenshotStatus.textContent = 'Screenshot saved!';
-                screenshotStatus.style.color = '#4CAF50';
-                screenshotStatus.style.display = 'block';
+    // Add step container event delegation
+    stepsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-btn')) {
+            const container = e.target.closest('.step-container');
+            if (container) {
+                container.remove();
+                FormManager.renumberSteps();
+                debouncedSaveForm();
             }
-        } catch (err) {
-            console.error('Screenshot failed:', err);
-            screenshotStatus.textContent = `Screenshot failed: ${err.message}`;
-            screenshotStatus.style.color = 'red';
-            screenshotStatus.style.display = 'block';
-            progressBar.style.display = 'none';
-        }
-
-        setTimeout(() => {
-            screenshotStatus.style.display = 'none';
-        }, 2000);
-    }
-// Add input event listeners to all form fields
-    function setupFormListeners() {
-        const formElements = document.querySelectorAll('input, textarea, select');
-        formElements.forEach(element => {
-            element.addEventListener('input', saveFormData);
-            element.addEventListener('change', saveFormData);
-        });
-
-        // Add listeners for dynamic elements
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) { // ELEMENT_NODE
-                        const inputs = node.querySelectorAll('input, textarea, select');
-                        inputs.forEach(input => {
-                            input.addEventListener('input', saveFormData);
-                            input.addEventListener('change', saveFormData);
-                        });
-                    }
-                });
-            });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    // Set up button click handlers
-    const addStepBtn = document.querySelector('#addStep');
-    const addEnvironmentBtn = document.querySelector('#addEnvironment');
-    const clearButton = document.getElementById('clearButton');
-
-    if (addStepBtn) {
-        console.log('Add Step button found, adding event listener');
-        addStepBtn.addEventListener('click', addStep);
-    } else {
-        console.error('Add Step button not found in DOM');
-    }
-
-    if (addEnvironmentBtn) {
-        console.log('Add Environment button found, adding event listener');
-        addEnvironmentBtn.addEventListener('click', addEnvironment);
-    } else {
-        console.error('Add Environment button not found in DOM');
-    }
-
-    if (clearButton) {
-        console.log('Clear button found, adding event listener');
-        clearButton.addEventListener('click', clearForm);
-    } else {
-        console.error('Clear button not found in DOM');
-    }
-
-    // Initialize storage functionality
-    await restoreFormData();
-    setupFormListeners();
-
-    // Only add initial step and environment if there's no saved data
-    const { formData } = await chrome.storage.local.get('formData');
-    if (!formData || !formData.steps || formData.steps.length === 0) {
-        console.log('Initializing first step and environment');
-        addStep();
-        addEnvironment();
-    }
-
-    // Clipboard functionality
-    copyButton.addEventListener('click', async () => {
-        const title = document.getElementById('title').value;
-        let observed = document.getElementById('observed').value;
-        let expected = document.getElementById('expected').value;
-        const scope = document.getElementById('scope').value;
-        const reproductionPercent = document.getElementById('reproductionPercent').value;
-        const reproductionDesc = document.getElementById('reproductionDesc').value;
-        const severity = document.getElementById('severity');
-        const severityText = severity.options[severity.selectedIndex].text;
-
-        // Remove placeholder text if it exists
-        observed = observed.replace(/^Tester has observed that:\s*/, '');
-        expected = expected.replace(/^It is expected:\s*/, '');
-
-        const steps = Array.from(stepsContainer.querySelectorAll('.step-container'))
-            .map(container => {
-                const number = container.querySelector('span').textContent;
-                const description = container.querySelector('input').value;
-                return `${number} ${description}`;
-            })
-            .join('\n');
-
-        const environments = Array.from(environmentsContainer.querySelectorAll('input'))
-            .map(input => input.value)
-            .filter(value => value.trim() !== '')
-            .join('\n');
-
-        const bugReport = `${title}
-
-${observed}
-${expected}
-
-Steps to recreate:
-${steps}
-
-Environment: 
-${environments}
-${scope}
-
-Reproduction rate: ${reproductionPercent}% - ${reproductionDesc}
-
-Version: ${versionDisplay.textContent}
-
-Severity: ${severityText}`;
-
-        try {
-            await navigator.clipboard.writeText(bugReport);
-            copyStatus.textContent = 'Copied to clipboard!';
-            copyStatus.style.color = '#4CAF50';
-            copyStatus.style.display = 'block';
-            setTimeout(() => {
-                copyStatus.style.display = 'none';
-            }, 2000);
-        } catch (err) {
-            copyStatus.textContent = 'Failed to copy!';
-            copyStatus.style.color = 'red';
-            copyStatus.style.display = 'block';
-            console.error('Failed to copy text: ', err);
         }
     });
 
-    console.log('Extension setup complete');
+    // Add environment container event delegation
+    environmentsContainer.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-btn')) {
+            const container = e.target.closest('.environment-container');
+            if (container) {
+                container.remove();
+                debouncedSaveForm();
+            }
+        }
+    });
+
+    // Initialize form
+    if (document.querySelectorAll('.step-container').length === 0) {
+        FormManager.addStep();
+    }
+    
+    // Remove this conditional check to ensure environment detection always runs
+    await EnvironmentManager.detectEnvironment();
 });
+
+// Create debounced version of form save
+const debouncedSaveForm = debounce(() => FormManager.saveForm(), 500);
