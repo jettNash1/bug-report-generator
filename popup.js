@@ -391,9 +391,12 @@ const EnvironmentManager = {
                 });
                 
                 // Add single environment input with new format
-                const envInput = document.createElement('input');
-                envInput.type = 'text';
-                envInput.value = `${os} - ${browserVersion}`;
+                const envInput = document.createElement('div');
+                envInput.className = 'environment-container';
+                envInput.innerHTML = `
+                    <input type="text" value="${os} - ${browserVersion}">
+                    <button class="remove-btn">X</button>
+                `;
                 container.appendChild(envInput);
 
                 // Set version with new format
@@ -409,9 +412,12 @@ const EnvironmentManager = {
             
             if (container) {
                 container.innerHTML = '';
-                const envInput = document.createElement('input');
-                envInput.type = 'text';
-                envInput.value = 'Unable to detect environment';
+                const envInput = document.createElement('div');
+                envInput.className = 'environment-container';
+                envInput.innerHTML = `
+                    <input type="text" value="Unable to detect environment">
+                    <button class="remove-btn">X</button>
+                `;
                 container.appendChild(envInput);
             }
             
@@ -593,11 +599,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addEnvironmentButton) {
         addEnvironmentButton.addEventListener('click', () => {
             const container = document.getElementById('environments-container');
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'Enter environment detail';
-            container.appendChild(input);
-            input.focus();
+            const envInput = document.createElement('div');
+            envInput.className = 'environment-container';
+            envInput.innerHTML = `
+                <input type="text" placeholder="Enter environment detail">
+                <button class="remove-btn">X</button>
+            `;
+            container.appendChild(envInput);
+            envInput.querySelector('input').focus();
             debouncedSaveForm();
         });
     }
