@@ -287,6 +287,7 @@
             <option>Believed to be browser specific</option>
             <option>Believed to only affect desktop environments.</option>
             <option>Believed to only affect mobile environments.</option>
+            <option>Believed to only affect tablet environments.</option>
         </select>
     </div>
 
@@ -298,7 +299,13 @@
     <div class="form-group">
         <label>Reproduction Rate:</label>
         <div class="reproduction-container">
-            <input type="number" id="reproductionPercent" value="100" min="0" max="100">
+            <select id="reproductionPercent">
+                <option value="0%">0%</option>
+                <option value="25%">25%</option>
+                <option value="50%">50%</option>
+                <option value="75%">75%</option>
+                <option value="100%">100%</option>
+            </select>
             <select id="reproductionDesc">
                 <option>Not reproducible.</option>
                 <option>Sporadic issue.</option>

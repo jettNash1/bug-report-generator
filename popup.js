@@ -1,4 +1,3 @@
-// 1. Error Classes
 class NetworkError extends Error {
     constructor(message) {
         super(message);
@@ -74,7 +73,7 @@ const FormManager = {
             observed: document.getElementById('observed')?.value || '',
             expected: document.getElementById('expected')?.value || '',
             scope: document.getElementById('scope')?.value || '',
-            reproductionPercent: document.getElementById('reproductionPercent')?.value || '',
+            reproductionPercent: document.getElementById('reproductionPercent')?.value || '', // Updated to get value from dropdown
             reproductionDesc: document.getElementById('reproductionDesc')?.value || '',
             severity: document.getElementById('severity')?.value || '',
             steps: Array.from(document.getElementById('steps-container').querySelectorAll('.step-container'))
@@ -93,7 +92,7 @@ const FormManager = {
             await PerformanceMonitor.measure('save-form', async () => {
                 await AutoSaveManager.add(formData);
             });
-            FormStateManager.markDirty();
+            FormStateManager.markClean();
         } catch (err) {
             ErrorHandler.handle(err instanceof Error ? err : new StorageError('Failed to save form data'));
         }
@@ -574,6 +573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clearButton = document.getElementById('clearButton');
     const addStepButton = document.getElementById('addStepButton');
     const addEnvironmentButton = document.getElementById('addEnvironmentButton');
+    const reproductionPercentElement = document.getElementById('reproductionPercent');
 
     // Initialize managers
     KeyboardManager.init();
@@ -609,6 +609,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             envInput.querySelector('input').focus();
             debouncedSaveForm();
         });
+    }
+
+    if (reproductionPercentElement) {
+        reproductionPercentElement.innerHTML = `
+            <option value="0%">0%</option>
+            <option value="25%">25%</option>
+            <option value="50%">50%</option>
+            <option value="75%">75%</option>
+            <option value="100%">100%</option>
+        `;
     }
 
     dropdownToggle.addEventListener('click', () => {
