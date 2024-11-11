@@ -589,8 +589,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     await FormManager.loadSavedForm();
 
     // Event listeners
-    copyButton.addEventListener('click', () => CopyManager.copyToClipboard());
-    screenshotButton.addEventListener('click', () => captureVisibleArea());
+
+    async function requestPermissions() {
+        try {
+            const permissions = {
+                permissions: [
+                    'activeTab',
+                    'downloads',
+                    'scripting',
+                    'clipboardWrite'
+                ],
+                origins: ['<all_urls>']
+            };
+    
+            const granted = await chrome.permissions.request(permissions);
+            if (granted) {
+                console.log('Permissions granted');
+                return true;
+            } else {
+                console.log('Permissions denied');
+                return false;
+            }
+        } catch (err) {
+            console.error('Error requesting permissions:', err);
+            return false;
+        }
+    }
+    
+    copyButton.addEventListener('click', async () => {
+        const hasPermissions = await requestPermissions();
+        if (hasPermissions) {
+            CopyManager.copyToClipboard();
+        } else {
+            ErrorHandler.showUserError('Required permissions not granted. Some features may not work.');
+        }
+    });
+    screenshotButton.addEventListener('click', async () => {
+        const hasPermissions = await requestPermissions();
+        if (hasPermissions) {
+            captureVisibleArea();
+        } else {
+            ErrorHandler.showUserError('Required permissions not granted. Some features may not work.');
+        }
+    });
     clearButton.addEventListener('click', () => FormManager.clearForm());
     if (addStepButton) {
         addStepButton.addEventListener('click', () => FormManager.addStep());
@@ -625,14 +666,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         dropdown.classList.toggle('show');
     });
     dropdown.querySelectorAll('button').forEach(button => {
-        button.addEventListener('click', () => {
-            const type = button.dataset.type;
-            if (type === 'visible') {
-                captureVisibleArea();
-            } else if (type === 'full') {
-                captureFullPage();
+        button.addEventListener('click', async () => {
+            const hasPermissions = await requestPermissions();
+            if (hasPermissions) {
+                const type = button.dataset.type;
+                if (type === 'visible') {
+                    captureVisibleArea();
+                } else if (type === 'full') {
+                    captureFullPage();
+                }
+                dropdown.classList.remove('show');
+            } else {
+                ErrorHandler.showUserError('Required permissions not granted. Some features may not work.');
             }
-            dropdown.classList.remove('show');
         });
     });
 
