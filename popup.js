@@ -336,14 +336,14 @@ const CopyManager = {
 
         const environments = formData.environments.filter(value => value.trim() !== '').join('\n');
 
-        const bugReport = `Title: ${formData.title}\n\n` +
+        const bugReport = `${formData.title}\n\n` +
             `${observed}\n\n` +
             `${expected}\n\n` +
             `Steps to Reproduce:\n${steps}\n\n` +
             `Environment:\n${environments}\n\n` +
-            `Scope: ${formData.scope}\n` +
-            `Reproduction Rate: ${formData.reproductionPercent}` + ' ' +
-            `${formData.reproductionDesc}\n` +
+            `Scope: ${formData.scope}\n\n` +
+            `Reproduction Rate:\n ${formData.reproductionPercent}` + ' ' +
+            `${formData.reproductionDesc}\n\n` +
             `Severity: ${severityText}`;
 
         return bugReport;
