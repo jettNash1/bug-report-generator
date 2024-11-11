@@ -26,6 +26,15 @@ function debounce(func, wait) {
     };
 }
 
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 
 // 3. Core Services
 const ErrorHandler = {
@@ -103,21 +112,29 @@ const FormManager = {
         container.className = 'step-container';
         const stepNumber = document.querySelectorAll('.step-container').length + 1;
         
-        container.innerHTML = `
-            <span>${stepNumber}.</span>
-            <input type="text" placeholder="Enter step description">
-            <button class="remove-btn">X</button>
-        `;
-
-        const removeButton = container.querySelector('.remove-btn');
-        removeButton.addEventListener('click', () => {
+        const span = document.createElement('span');
+        span.textContent = `${stepNumber}.`;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Enter step description';
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = 'X';
+        
+        removeBtn.addEventListener('click', () => {
             container.remove();
             this.renumberSteps();
             this.saveForm();
         });
-
+    
+        container.appendChild(span);
+        container.appendChild(input);
+        container.appendChild(removeBtn);
+        
         document.getElementById('steps-container').appendChild(container);
-        container.querySelector('input').focus();
+        input.focus();
     },
 
     renumberSteps() {
@@ -164,11 +181,22 @@ const FormManager = {
                     formData.steps.forEach(step => {
                         const container = document.createElement('div');
                         container.className = 'step-container';
-                        container.innerHTML = `
-                            <span>${step.number}</span>
-                            <input type="text" value="${step.description}" placeholder="Enter step description">
-                            <button class="remove-btn">X</button>
-                        `;
+                        
+                        const span = document.createElement('span');
+                        span.textContent = step.number;
+                        
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = step.description;
+                        input.placeholder = 'Enter step description';
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.textContent = 'X';
+                        
+                        container.appendChild(span);
+                        container.appendChild(input);
+                        container.appendChild(removeBtn);
                         stepsContainer.appendChild(container);
                     });
                 } else {
@@ -392,10 +420,17 @@ const EnvironmentManager = {
                 // Add single environment input with new format
                 const envInput = document.createElement('div');
                 envInput.className = 'environment-container';
-                envInput.innerHTML = `
-                    <input type="text" value="${os} - ${browserVersion}">
-                    <button class="remove-btn">X</button>
-                `;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = `${os} - ${browserVersion}`;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.textContent = 'X';
+
+                envInput.appendChild(input);
+                envInput.appendChild(removeBtn);
                 container.appendChild(envInput);
 
                 // Set version with new format
