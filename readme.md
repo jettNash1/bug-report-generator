@@ -15,6 +15,9 @@ A browser extension for generating structured bug reports with screenshot capabi
 - 💾 Automatic form persistence
 - 🔄 Form state recovery
 - 🗑️ Clear form functionality
+- 🔲 Pop-out window support
+- 🎨 Dark mode support
+- ⌨️ Keyboard shortcuts
 
 ## Installation Guide
 
@@ -43,7 +46,7 @@ A browser extension for generating structured bug reports with screenshot capabi
 
 ### Method 2: Chrome Web Store in Edge
 1. Open Edge
-2. Navigate to the Chrome Web Store
+2. Navigate to the Chrome Web Store (link coming soon)
 3. Click "Allow extensions from other stores" if prompted
 4. Click "Add to Chrome"
 5. Click "Add Extension" in the popup
@@ -82,20 +85,31 @@ A browser extension for generating structured bug reports with screenshot capabi
    - Title
    - Description (Observed behavior and Expected behavior)
    - Steps to reproduce (automatically numbered)
-   - Environment details
+   - Environment details (auto-detected)
    - Scope selection
    - Reproduction rate and description
    - Severity level
-3. Use the screenshot tools:
+3. Use the utility buttons if necessary:
+   - ℹ️ (i) - Show information overlay
+   - ⤢ - Pop out to separate window
+   - ⚙️ - Manage permissions
+   - ↻ - Refresh permissions and features
+4. Use the screenshot tools:
    - Click "Take Screenshot" for visible area
    - Use dropdown for full page capture
-4. Click "Copy to Clipboard" to get the formatted report
-5. Use "Clear Form" to reset all fields when needed
+5. Click "Copy to Clipboard" to get the formatted report
+6. Use "Clear Form" to reset all fields when needed
+
+### Keyboard Shortcuts
+- `Ctrl + S` - Save form
+- `Ctrl + C` - Copy report
+- `Esc` - Close dropdowns/overlay
 
 ### Form Persistence
-- All form data is automatically saved as you type
+- All form data is automatically saved while typing
 - Data persists even if you close the extension popup
 - Form state is restored when reopening the extension
+- 'Last saved' indicator shows when changes were last saved
 - Use the "Clear Form" button to reset all fields and stored data
 
 ## Troubleshooting
@@ -116,12 +130,35 @@ A browser extension for generating structured bug reports with screenshot capabi
 - Verify storage permission is granted
 
 ### Permission Issues
-The extension requires the following permissions:
-- `activeTab`: For capturing screenshots
-- `downloads`: For saving screenshots
-- `scripting`: For full page screenshots
-- `clipboardWrite`: For copying bug reports
-- `storage`: For form data persistence
+The extension uses optional permissions for security. Here's how to grant them:
+
+1. Click the ⚙️ (cog) button in the utility bar
+2. A browser permissions dialog will appear
+3. Click "Allow" to grant the following permissions:
+   - `activeTab`: For capturing screenshots and environment detection
+   - `downloads`: For saving screenshots
+   - `scripting`: For full page screenshots and environment detection
+   - `clipboardWrite`: For copying bug reports
+   - `storage`: For form data persistence (required permission)
+
+#### Troubleshooting Permissions
+
+If features aren't working:
+1. Click the ⚙️ button to check current permissions
+2. If permissions are missing, you'll be prompted to grant them
+3. Use the ↻ (refresh) button to reload the extension after granting permissions
+4. If problems persist, try:
+   - Closing and reopening the extension
+   - Refreshing the current page
+   - Checking your browser's extension settings
+
+#### Permission Details
+- **Screenshots**: Requires `activeTab` and `downloads`
+- **Environment Detection**: Requires `activeTab` and `scripting`
+- **Copy to Clipboard**: Requires `clipboardWrite`
+- **Form Saving**: Uses `storage` (automatically granted)
+
+> **Note**: All permissions can be revoked through your browser's extension settings if needed. The extension will prompt you to re-grant permissions when you try to use features that require them.
 
 ### Browser Support Status
 
@@ -131,9 +168,11 @@ The extension requires the following permissions:
 | Full Page Screenshots | ✅     | ✅   | ⚠️      |
 | Clipboard Support     | ✅     | ✅   | ✅      |
 | Form Persistence      | ✅     | ✅   | ✅      |
+| Dark Mode            | ✅     | ✅   | ✅      |
+| Pop-out Window       | ✅     | ✅   | ✅      |
 | Auto-Updates          | ✅*    | ✅*  | ✅*     |
 
-\*When installed from official store
+*When installed from official store
 
 ## Updating the Extension
 
@@ -183,6 +222,14 @@ The extension requires the following permissions:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Version History
+
+### v5.0
+- Added pop-out window functionality
+- Added dark mode support
+- Added keyboard shortcuts
+- Improved permission management
+- Added utility buttons
+- Enhanced error handling
 
 ### v2.5
 - Added form data persistence
