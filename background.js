@@ -1,15 +1,58 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'detectEnvironment') {
-        const userAgent = navigator.userAgent;
-        const environment = {
-            os: detectOS(userAgent),
-            browser: detectBrowser(userAgent),
-            browserVersion: detectBrowserVersion(userAgent),
-            deviceType: detectDeviceType(userAgent)
-        };
-        sendResponse(environment);
+        chrome.tabs.query({ active: true, lastFocusedWindow: true }, async (tabs) => {
+            if (!tabs[0]?.id) {
+                sendResponse(null);
+                return;
+            }
+
+            try {
+                const envInfo = await chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    func: () => {
+                        const getOS = () => {
+                            const userAgent = window.navigator.userAgent;
+                            if (userAgent.includes('Windows NT 10.0')) return 'Windows 11';
+                            if (userAgent.includes('Windows NT 6.3')) return 'Windows 8.1';
+                            if (userAgent.includes('Windows NT 6.2')) return 'Windows 8';
+                            if (userAgent.includes('Windows NT 6.1')) return 'Windows 7';
+                            if (userAgent.includes('Windows')) return 'Windows';
+                            if (userAgent.includes('Mac')) return 'MacOS';
+                            if (userAgent.includes('Linux')) return 'Linux';
+                            return 'Unknown OS';
+                        };
+
+                        const getBrowserVersion = () => {
+                            const match = navigator.userAgent.match(/(chrome|firefox|safari|edge|opera(?=\/))\/?\s*(\d+)/i);
+                            if (match) {
+                                const browser = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+                                return `${browser} ${match[2]}.0.0`;
+                            }
+                            return 'Unknown Browser';
+                        };
+
+                        return {
+                            os: getOS(),
+                            browserVersion: getBrowserVersion(),
+                            url: window.location.href
+                        };
+                    }
+                });
+
+                if (envInfo?.[0]?.result) {
+                    sendResponse(envInfo[0].result);
+                } else {
+                    sendResponse(null);
+                }
+            } catch (error) {
+                console.error('Environment detection error:', error);
+                sendResponse(null);
+            }
+        });
+
+        // Keep the message channel open for the async response
+        return true;
     }
-    return true;
 });
 
 function detectOS(userAgent) {

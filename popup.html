@@ -7,7 +7,12 @@
     <title>Bug Report Generator</title>
     <style>
         :root {
-            /* Light theme variables */
+            --primary-color: #3498db;
+            --primary-hover: #2980b9;
+            --danger-color: #e74c3c;
+            --danger-hover: #c0392b;
+            --success-color: #2ecc71;
+            --success-hover: #27ae60;
             --bg-color: white;
             --text-color: black;
             --input-bg: white;
@@ -18,7 +23,6 @@
 
         @media (prefers-color-scheme: dark) {
             :root {
-                /* Dark theme variables */
                 --bg-color: #202124;
                 --text-color: #e8eaed;
                 --input-bg: #292a2d;
@@ -28,47 +32,13 @@
             }
         }
 
-        /* Then use variables throughout */
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-        }
-
-        input, textarea, select, .step-container, .environment-container, #version {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-            color: var(--text-color);
-        }
-
-        select option {
-            background-color: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        .screenshot-dropdown {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-        }
-
-        .screenshot-dropdown button {
-            color: var(--text-color);
-        }
-
-        .screenshot-dropdown button:hover {
-            background-color: var(--hover-bg);
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: var(--text-color);
-        }
-
-        /* Base styles */
         body {
             width: 600px;
             padding: 15px;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
         }
 
         .form-group {
@@ -88,9 +58,11 @@
             width: 100%;
             padding: 8px;
             margin-bottom: 5px;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             box-sizing: border-box;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
 
         textarea {
@@ -104,9 +76,10 @@
             align-items: center;
             margin-bottom: 5px;
             gap: 5px;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
             padding: 5px;
             border-radius: 4px;
+            background-color: var(--input-bg);
         }
 
         .step-container span {
@@ -120,7 +93,7 @@
 
         button {
             padding: 8px 16px;
-            background-color: #4CAF50;
+            background-color: var(--primary-color);
             color: white;
             border: none;
             border-radius: 4px;
@@ -128,17 +101,17 @@
         }
 
         button:hover {
-            background-color: #45a049;
+            background-color: var(--primary-hover);
         }
 
         .remove-btn {
             padding: 5px 10px;
-            background-color: #ff4444;
+            background-color: var(--danger-color);
             color: white;
         }
 
         .remove-btn:hover {
-            background-color: #cc0000;
+            background-color: var(--danger-hover);
         }
 
         .button-container {
@@ -158,19 +131,21 @@
 
         #screenshotDropdownToggle {
             padding: 10px 5px;
-            border-left: 1px solid #45a049;
+            border-left: 1px solid var(--primary-hover);
             border-radius: 0 4px 4px 0;
         }
 
         .screenshot-dropdown {
             display: none;
             position: absolute;
-            top: 100%;
+            bottom: 100%;
             right: 0;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
             z-index: 1000;
+            margin-bottom: 5px;
+            background-color: var(--dropdown-bg);
         }
 
         .screenshot-dropdown.show {
@@ -183,21 +158,26 @@
             padding: 8px 12px;
             background: none;
             text-align: left;
+            color: var(--text-color);
+        }
+
+        .screenshot-dropdown button:hover {
+            background-color: var(--hover-bg);
         }
 
         #clearButton {
-            background-color: #dc3545;
+            background-color: var(--danger-color);
         }
 
         #clearButton:hover {
-            background-color: #c82333;
+            background-color: var(--danger-hover);
         }
 
         .progress-bar {
             display: none;
             width: 100%;
             height: 4px;
-            background-color: #cccccc;
+            background-color: var(--border-color);
             margin-top: 10px;
             border-radius: 2px;
             overflow: hidden;
@@ -206,7 +186,7 @@
         .progress-bar-fill {
             width: 0%;
             height: 100%;
-            background-color: #4CAF50;
+            background-color: var(--success-color);
             transition: width 0.3s ease;
         }
 
@@ -216,13 +196,14 @@
             padding: 10px;
             border-radius: 4px;
             text-align: center;
-            border: 1px solid;
+            border: 1px solid var(--border-color);
         }
 
         .reproduction-container {
             display: flex;
             gap: 10px;
             align-items: center;
+            position: relative;
         }
 
         .reproduction-container input[type="number"] {
@@ -231,6 +212,10 @@
 
         .reproduction-container select {
             flex: 1;
+            max-width: calc(100% - 80px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #version {
@@ -241,7 +226,10 @@
             display: block;
             margin-bottom: 10px;
             white-space: nowrap;
-            overflow: visible;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
 
         .save-indicator {
@@ -250,9 +238,243 @@
             text-align: right;
             margin-top: 5px;
         }
+
+        .utility-buttons {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .utility-btn {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            font-size: 14px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .utility-btn:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+
+        .overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .overlay-content {
+            background-color: var(--bg-color);
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 80%;
+            border: 1px solid var(--border-color);
+        }
+
+        .overlay-content h3 {
+            margin-top: 0;
+        }
+
+        .overlay-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .overlay-content li {
+            margin: 10px 0;
+        }
+
+        kbd {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 0.9em;
+        }
+
+        .close-overlay {
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .form-group {
+            margin-top: 15px;
+        }
+
+        .permission-list {
+            margin: 15px 0;
+        }
+
+        .permission-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .permission-item label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .permission-item small {
+            display: block;
+            color: var(--text-color);
+            opacity: 0.8;
+            margin-left: 24px;
+        }
+
+        .save-permissions {
+            margin-top: 15px;
+            width: 100%;
+            background-color: var(--success-color);
+        }
+
+        .permissions-info {
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .permissions-info li {
+            margin: 5px 0;
+            color: var(--text-color);
+        }
+
+        .permission-note {
+            margin: 15px 0;
+            padding: 8px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        #reproductionDesc {
+            width: 100%;
+            max-width: 300px;
+            white-space: normal;
+            overflow-wrap: break-word;
+        }
+
+        #reproductionDesc option {
+            font-size: 12px;
+            padding: 4px 8px;
+            line-height: 1.2;
+            white-space: normal;
+            width: 50%;
+            text-overflow: ellipsis;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-color);
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
+    <div class="utility-buttons">
+        <button id="infoButton" class="utility-btn" title="Information">i</button>
+        <button id="popoutButton" class="utility-btn" title="Pop Out">⤢</button>
+        <button id="futureButton" class="utility-btn" title="Manage Permissions">⚙️</button>
+        <button id="refreshButton" class="utility-btn" title="Refresh Permissions">↻</button>
+    </div>
+
+    <div id="infoOverlay" class="overlay">
+        <div class="overlay-content">
+            <h3>Extension Information</h3>
+            
+            <h4>Keyboard Shortcuts</h4>
+            <ul>
+                <li><kbd>Ctrl</kbd> + <kbd>S</kbd> - Save form</li>
+                <li><kbd>Ctrl</kbd> + <kbd>C</kbd> - Copy report</li>
+                <li><kbd>Esc</kbd> - Close dropdowns/overlay</li>
+            </ul>
+
+            <h4>Utility Buttons</h4>
+            <ul>
+                <li>ℹ️ (i) - Show this information</li>
+                <li>⤢ - Pop out to separate window</li>
+                <li>⚙️- Manage permissions</li>
+                <li>↻ - Refresh permissions and features</li>
+            </ul>
+
+            <h4>Auto-Save Feature</h4>
+            <ul>
+                <li>Your form data is automatically saved while typing</li>
+                <li>'Last saved' indicator shows when your changes were last saved</li>
+                <li>If you see 'Unsaved changes', wait a moment for auto-save to complete</li>
+            </ul>
+
+            <h4>Required Permissions</h4>
+            <ul>
+                <li>Active Tab - For environment detection</li>
+                <li>Downloads - For saving screenshots</li>
+                <li>Scripting - For environment detection</li>
+                <li>Clipboard Write - For copying reports</li>
+            </ul>
+
+            <button class="close-overlay">Close</button>
+        </div>
+    </div>
+
+    <div id="permissionOverlay" class="overlay">
+        <div class="overlay-content">
+            <h3>Manage Permissions</h3>
+            <div class="permission-list">
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="activeTabPermission"> 
+                        Active Tab Access
+                    </label>
+                    <small>Required for environment detection</small>
+                </div>
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="downloadsPermission"> 
+                        Downloads
+                    </label>
+                    <small>Required for saving screenshots</small>
+                </div>
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="scriptingPermission"> 
+                        Scripting
+                    </label>
+                    <small>Required for environment detection</small>
+                </div>
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="clipboardPermission"> 
+                        Clipboard Write
+                    </label>
+                    <small>Required for copying reports</small>
+                </div>
+            </div>
+            <button class="save-permissions">Save Permissions</button>
+            <button class="close-overlay">Close</button>
+        </div>
+    </div>
+
     <div class="form-group">
         <label for="title" aria-required="true">Title:</label>
         <input type="text" id="title" placeholder="Enter bug title" aria-label="Bug title" required>
