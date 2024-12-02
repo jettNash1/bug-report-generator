@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Bug Report Generator",
-    "version": "5.0",
+    "version": "6.0",
     "description": "Generate bug reports with screenshots matching the Zoonou template",
     "permissions": [
         "storage"
@@ -10,16 +10,14 @@
         "activeTab",
         "downloads",
         "scripting",
-        "clipboardWrite"
+        "clipboardWrite",
+        "tabs",
+        "windows"
     ],
     "host_permissions": [],
     "optional_host_permissions": [
         "<all_urls>"
     ],
-    "background": {
-        "service_worker": "background.js",
-        "type": "module"
-    },
     "action": {
         "default_popup": "popup.html"
     },

@@ -7,8 +7,8 @@ A browser extension for generating structured bug reports with screenshot capabi
 - 📝 Generate structured bug reports
 - 📸 Take full page or visible area screenshots
 - 📋 One-click copy to clipboard
-- 🔄 Track steps to reproduce
-- 💻 Record environment details
+- 🔄 Track steps to reproduce (with validation)
+- 💻 Auto-detect environment details
 - 🌐 Multi-browser support
 - 🎯 Customizable severity levels
 - 📊 Reproduction rate tracking
@@ -18,6 +18,13 @@ A browser extension for generating structured bug reports with screenshot capabi
 - 🔲 Pop-out window support
 - 🎨 Dark mode support
 - ⌨️ Keyboard shortcuts
+- 🕒 Optional timestamp append
+- 🔒 Protected initial fields
+- ✅ Smart field validation
+- 🔄 Real-time auto-save
+- 🌙 System theme detection
+- 🔍 Error tracking and recovery
+- 📱 Responsive design
 
 ## Installation Guide
 
@@ -82,26 +89,80 @@ A browser extension for generating structured bug reports with screenshot capabi
 
 1. Click the extension icon in your browser toolbar
 2. Fill in the bug report details:
-   - Title
-   - Description (Observed behavior and Expected behavior)
-   - Steps to reproduce (automatically numbered)
-   - Environment details (auto-detected)
-   - Scope selection
-   - Reproduction rate and description
-   - Severity level
-3. Use the utility buttons if necessary:
-   - ℹ️ (i) - Show information overlay
-   - ⤢ - Pop out to separate window
+   - Title (5-200 characters)
+   - Description:
+     - Observed behavior (starts with "Tester has observed that:")
+     - Expected behavior (starts with "It is expected:")
+   - Steps to reproduce (automatically numbered, first step protected)
+   - Environment details (auto-detected, first environment protected)
+   - Scope selection (9 predefined options)
+   - Reproduction rate (0-100% with descriptions)
+   - Severity level (1-5 scale)
+   - Version (with optional time append)
+3. Use the utility buttons:
+   - ℹ️ (i) - Show information overlay with keyboard shortcuts and help
+   - ⤢ - Pop out to separate window (600x800px default)
    - ⚙️ - Manage permissions
-   - ↻ - Refresh permissions and features
-4. Use the screenshot tools:
-   - Click "Take Screenshot" for visible area
-   - Use dropdown for full page capture
-5. Click "Copy to Clipboard" to get the formatted report
-6. Use "Clear Form" to reset all fields when needed
+   - ↻ - Refresh permissions and environment detection
+
+### Form Features
+
+#### Auto-Save Functionality
+- Changes are saved every 500ms after typing
+- Visual indicator shows save status
+- Backup system prevents data loss
+- Maximum of 10 queued save operations
+
+#### Error Handling
+- Network errors are tracked and reported
+- Storage errors trigger automatic retry
+- Error messages are shown for 3 seconds
+- Errors are automatically cleaned up after 1 hour
+
+#### Environment Detection
+- Browser version and name
+- Operating system details
+- Current URL and timestamp
+- Device type (desktop/mobile/tablet)
+
+### Form Validation
+- Title length: 5-200 characters
+- Steps must have content before adding new ones
+- Environments must be filled before adding new ones
+- First step and environment entries are protected
+- Required fields are clearly marked
+- Real-time validation feedback
+
+### Report Format
+```
+Title
+
+Observed Behavior
+
+Expected Behavior
+
+Steps to Reproduce:
+1. [Step 1]
+2. [Step 2]
+...
+
+Environment:
+[Environment details separated by " - "]
+
+Version:
+[URL] - [Date] - [Time (optional)]
+
+[Scope]
+
+Reproduction Rate:
+[Percentage] - [Description]
+
+Severity:
+[Level] - [Description]
+```
 
 ### Keyboard Shortcuts
-- `Ctrl + S` - Save form
+- `Ctrl + S` - Save report as text file
 - `Ctrl + C` - Copy report
 - `Esc` - Close dropdowns/overlay
 
@@ -222,6 +283,15 @@ If features aren't working:
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Version History
+
+### v6.0 (Current)
+- Enhanced error handling system
+- Improved auto-save functionality
+- Added form validation system
+- Better accessibility support
+- Improved dark mode implementation
+- Enhanced keyboard shortcuts
+- Better performance optimizations
 
 ### v5.0
 - Added pop-out window functionality

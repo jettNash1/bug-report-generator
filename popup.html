@@ -4,434 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Bug Report Generator Extension">
     <title>Bug Report Generator</title>
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --primary-hover: #2980b9;
-            --danger-color: #e74c3c;
-            --danger-hover: #c0392b;
-            --success-color: #2ecc71;
-            --success-hover: #27ae60;
-            --bg-color: white;
-            --text-color: black;
-            --input-bg: white;
-            --border-color: #ccc;
-            --dropdown-bg: white;
-            --hover-bg: #f5f5f5;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #202124;
-                --text-color: #e8eaed;
-                --input-bg: #292a2d;
-                --border-color: #5f6368;
-                --dropdown-bg: #292a2d;
-                --hover-bg: #3c4043;
-            }
-        }
-
-        body {
-            width: 600px;
-            padding: 15px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input[type="text"],
-        input[type="number"],
-        textarea,
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 5px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-sizing: border-box;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        textarea {
-            height: 100px;
-            resize: vertical;
-        }
-
-        .step-container,
-        .environment-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-            gap: 5px;
-            border: 1px solid var(--border-color);
-            padding: 5px;
-            border-radius: 4px;
-            background-color: var(--input-bg);
-        }
-
-        .step-container span {
-            min-width: 25px;
-        }
-
-        .step-container input {
-            flex: 1;
-            margin: 0;
-        }
-
-        button {
-            padding: 8px 16px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .remove-btn {
-            padding: 5px 10px;
-            background-color: var(--danger-color);
-            color: white;
-        }
-
-        .remove-btn:hover {
-            background-color: var(--danger-hover);
-        }
-
-        .button-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .split-button-group {
-            position: relative;
-            display: flex;
-        }
-
-        #screenshotButton {
-            border-radius: 4px 0 0 4px;
-        }
-
-        #screenshotDropdownToggle {
-            padding: 10px 5px;
-            border-left: 1px solid var(--primary-hover);
-            border-radius: 0 4px 4px 0;
-        }
-
-        .screenshot-dropdown {
-            display: none;
-            position: absolute;
-            bottom: 100%;
-            right: 0;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
-            margin-bottom: 5px;
-            background-color: var(--dropdown-bg);
-        }
-
-        .screenshot-dropdown.show {
-            display: block;
-        }
-
-        .screenshot-dropdown button {
-            display: block;
-            width: 100%;
-            padding: 8px 12px;
-            background: none;
-            text-align: left;
-            color: var(--text-color);
-        }
-
-        .screenshot-dropdown button:hover {
-            background-color: var(--hover-bg);
-        }
-
-        #clearButton {
-            background-color: var(--danger-color);
-        }
-
-        #clearButton:hover {
-            background-color: var(--danger-hover);
-        }
-
-        .progress-bar {
-            display: none;
-            width: 100%;
-            height: 4px;
-            background-color: var(--border-color);
-            margin-top: 10px;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-bar-fill {
-            width: 0%;
-            height: 100%;
-            background-color: var(--success-color);
-            transition: width 0.3s ease;
-        }
-
-        .status {
-            display: none;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .reproduction-container {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            position: relative;
-        }
-
-        .reproduction-container input[type="number"] {
-            width: 70px;
-        }
-
-        .reproduction-container select {
-            flex: 1;
-            max-width: calc(100% - 80px);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        #version {
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            border-radius: 4px;
-            min-height: 20px;
-            display: block;
-            margin-bottom: 10px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-        }
-
-        .save-indicator {
-            font-size: 0.8em;
-            color: var(--text-color);
-            text-align: right;
-            margin-top: 5px;
-        }
-
-        .utility-buttons {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 5px;
-        }
-
-        .utility-btn {
-            width: 24px;
-            height: 24px;
-            padding: 0;
-            font-size: 14px;
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .utility-btn:hover {
-            background-color: var(--hover-bg);
-        }
-
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-        }
-
-        .overlay.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .overlay-content {
-            background-color: var(--bg-color);
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 80%;
-            border: 1px solid var(--border-color);
-        }
-
-        .overlay-content h3 {
-            margin-top: 0;
-        }
-
-        .overlay-content ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .overlay-content li {
-            margin: 10px 0;
-        }
-
-        kbd {
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 3px;
-            padding: 2px 5px;
-            font-size: 0.9em;
-        }
-
-        .close-overlay {
-            margin-top: 15px;
-            width: 100%;
-        }
-
-        .form-group {
-            margin-top: 15px;
-        }
-
-        .permission-list {
-            margin: 15px 0;
-        }
-
-        .permission-item {
-            margin-bottom: 10px;
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-        }
-
-        .permission-item label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .permission-item small {
-            display: block;
-            color: var(--text-color);
-            opacity: 0.8;
-            margin-left: 24px;
-        }
-
-        .save-permissions {
-            margin-top: 15px;
-            width: 100%;
-            background-color: var(--success-color);
-        }
-
-        .permissions-info {
-            margin: 15px 0;
-            padding-left: 20px;
-        }
-
-        .permissions-info li {
-            margin: 5px 0;
-            color: var(--text-color);
-        }
-
-        .permission-note {
-            margin: 15px 0;
-            padding: 8px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-
-        #reproductionDesc {
-            width: 100%;
-            max-width: 300px;
-            white-space: normal;
-            overflow-wrap: break-word;
-        }
-
-        #reproductionDesc option {
-            font-size: 12px;
-            padding: 4px 8px;
-            line-height: 1.2;
-            white-space: normal;
-            width: 50%;
-            text-overflow: ellipsis;
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: var(--text-color);
-            opacity: 0.7;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="utility-buttons">
-        <button id="infoButton" class="utility-btn" title="Information">i</button>
-        <button id="popoutButton" class="utility-btn" title="Pop Out">⤢</button>
-        <button id="futureButton" class="utility-btn" title="Manage Permissions">⚙️</button>
-        <button id="refreshButton" class="utility-btn" title="Refresh Permissions">↻</button>
-    </div>
+    <header class="utility-buttons" role="toolbar" aria-label="Utility controls">
+        <button id="infoButton" class="utility-btn" title="View keyboard shortcuts and help" aria-label="Information">i</button>
+        <button id="popoutButton" class="utility-btn" title="Open in separate window for better visibility" aria-label="Pop out window">⤢</button>
+        <button id="futureButton" class="utility-btn" title="View and manage extension permissions" aria-label="Settings">⚙️</button>
+        <button id="refreshButton" class="utility-btn" title="Refresh permissions and detect environment" aria-label="Refresh">↻</button>
+    </header>
 
     <div id="infoOverlay" class="overlay">
         <div class="overlay-content">
-            <h3>Extension Information</h3>
+            <h3>Extension Guide</h3>
             
-            <h4>Keyboard Shortcuts</h4>
-            <ul>
-                <li><kbd>Ctrl</kbd> + <kbd>S</kbd> - Save form</li>
-                <li><kbd>Ctrl</kbd> + <kbd>C</kbd> - Copy report</li>
-                <li><kbd>Esc</kbd> - Close dropdowns/overlay</li>
-            </ul>
+            <div class="guide-columns">
+                <div class="guide-column">
+                    <h4>Core Features</h4>
+                    <ul>
+                        <li><strong>Auto-Detection:</strong> Browser, OS, URL</li>
+                        <li><strong>Screenshots:</strong> Visible/full page</li>
+                        <li><strong>Auto-Save:</strong> Real-time persistence</li>
+                        <li><strong>Validation:</strong> Smart field checks</li>
+                    </ul>
 
-            <h4>Utility Buttons</h4>
-            <ul>
-                <li>ℹ️ (i) - Show this information</li>
-                <li>⤢ - Pop out to separate window</li>
-                <li>⚙️- Manage permissions</li>
-                <li>↻ - Refresh permissions and features</li>
-            </ul>
+                    <h4>Required Fields</h4>
+                    <ul>
+                        <li><strong>Title:</strong> Brief description</li>
+                        <li><strong>Description:</strong> Observed/Expected</li>
+                        <li><strong>Steps:</strong> Numbered steps</li>
+                        <li><strong>Environment:</strong> System details</li>
+                    </ul>
 
-            <h4>Auto-Save Feature</h4>
-            <ul>
-                <li>Your form data is automatically saved while typing</li>
-                <li>'Last saved' indicator shows when your changes were last saved</li>
-                <li>If you see 'Unsaved changes', wait a moment for auto-save to complete</li>
-            </ul>
+                    <h4>Controls</h4>
+                    <ul>
+                        <li><kbd>Ctrl</kbd>+<kbd>S</kbd> Save file</li>
+                        <li><kbd>Ctrl</kbd>+<kbd>C</kbd> Copy report</li>
+                        <li><kbd>Esc</kbd> Close overlay</li>
+                    </ul>
+                </div>
 
-            <h4>Required Permissions</h4>
-            <ul>
-                <li>Active Tab - For environment detection</li>
-                <li>Downloads - For saving screenshots</li>
-                <li>Scripting - For environment detection</li>
-                <li>Clipboard Write - For copying reports</li>
-            </ul>
+                <div class="guide-column">
+                    <h4>Field Features</h4>
+                    <ul>
+                        <li>Protected first step/environment</li>
+                        <li>Sequential validation</li>
+                        <li>Auto-numbering steps</li>
+                        <li>Optional time stamps</li>
+                    </ul>
+
+                    <h4>Utility Buttons</h4>
+                    <ul>
+                        <li>ℹ️ View this guide</li>
+                        <li>⤢ Pop-out window</li>
+                        <li>⚙️ Manage permissions</li>
+                        <li>↻ Refresh detection</li>
+                    </ul>
+
+                    <h4>Additional Fields</h4>
+                    <ul>
+                        <li><strong>Version:</strong> URL + date/time</li>
+                        <li><strong>Scope:</strong> Impact range</li>
+                        <li><strong>Reproduction:</strong> Success rate</li>
+                        <li><strong>Severity:</strong> Impact level</li>
+                    </ul>
+                </div>
+            </div>
 
             <button class="close-overlay">Close</button>
         </div>
@@ -469,111 +109,135 @@
                     </label>
                     <small>Required for copying reports</small>
                 </div>
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="tabsPermission"> 
+                        Tabs Access
+                    </label>
+                    <small>Required for window management and screenshots</small>
+                </div>
+                <div class="permission-item">
+                    <label>
+                        <input type="checkbox" id="windowsPermission"> 
+                        Windows Access
+                    </label>
+                    <small>Required for pop-out functionality</small>
+                </div>
             </div>
             <button class="save-permissions">Save Permissions</button>
             <button class="close-overlay">Close</button>
         </div>
     </div>
 
-    <div class="form-group">
-        <label for="title" aria-required="true">Title:</label>
-        <input type="text" id="title" placeholder="Enter bug title" aria-label="Bug title" required>
-    </div>
+    <main>
+        <form id="bugReportForm">
+            <div class="form-group">
+                <label for="title" aria-required="true">Title:</label>
+                <input type="text" id="title" placeholder="Enter bug title" aria-label="Bug title" required>
+            </div>
 
-    <div class="form-group">
-        <label>Description:</label>
-        <div>
-            <textarea id="observed" placeholder="Tester has observed that:"></textarea>
-            <textarea id="expected" placeholder="It is expected:"></textarea>
-        </div>
-    </div>
+            <div class="form-group">
+                <fieldset class="description-container">
+                    <legend>Description</legend>
+                    <div>
+                        <label for="observed">Observed:</label>
+                        <textarea id="observed" placeholder="Tester has observed that:" aria-required="true"></textarea>
+                    </div>
+                    <div>
+                        <label for="expected">Expected:</label>
+                        <textarea id="expected" placeholder="It is expected:" aria-required="true"></textarea>
+                    </div>
+                </fieldset>
+            </div>
 
-    <div class="form-group">
-        <label>Steps to recreate:</label>
-        <div id="steps-container"></div>
-        <button class="add-step-btn" id="addStepButton">Add Step</button>
-    </div>
+            <div class="form-group">
+                <label>Steps to recreate:</label>
+                <div id="steps-container"></div>
+                <button class="add-step-btn" id="addStepButton">Add Step</button>
+            </div>
 
-    <div class="form-group">
-        <label>Environment:</label>
-        <div id="environments-container"></div>
-        <button class="add-environment-btn" id="addEnvironmentButton">Add Environment</button>
-    </div>
+            <div class="form-group">
+                <label>Environment:</label>
+                <div id="environments-container"></div>
+                <button class="add-environment-btn" id="addEnvironmentButton">Add Environment</button>
+            </div>
 
-    <div class="form-group">
-        <label for="scope">Scope:</label>
-        <select id="scope">
-            <option>Believed to be global.</option>
-            <option>Believed to be device specific</option>
-            <option>Believed to be browser specific</option>
-            <option>Believed to only affect desktop environments.</option>
-            <option>Believed to only affect mobile environments.</option>
-            <option>Believed to only affect tablet environments.</option>
-            <option>Global Desktop.</option>
-            <option>Global Mobile.</option>
-            <option>Global Tablet.</option>
-        </select>
-    </div>
+            <div class="form-group">
+                <label for="scope">Scope:</label>
+                <select id="scope" aria-label="Select bug scope">
+                    <option>Believed to be global.</option>
+                    <option>Believed to be device specific.</option>
+                    <option>Believed to be browser specific.</option>
+                    <option>Believed to only affect desktop environments.</option>
+                    <option>Believed to only affect mobile environments.</option>
+                    <option>Believed to only affect tablet environments.</option>
+                    <option>Global Desktop.</option>
+                    <option>Global Mobile.</option>
+                    <option>Global Tablet.</option>
+                </select>
+            </div>
 
-    <div class="form-group">
-        <label>Version:</label>
-        <div id="version"></div>
-    </div>
+            <div class="form-group">
+                <fieldset class="version-container">
+                    <legend>Version Information</legend>
+                    <select id="urlSelect" class="url-select" aria-label="Select URL"></select>
+                    <span id="version" aria-live="polite"></span>
+                    <div class="version-toggle">
+                        <input type="checkbox" id="appendTimeCheckbox"> 
+                        <label for="appendTimeCheckbox">Append current time</label>
+                    </div>
+                </fieldset>
+            </div>
 
-    <div class="form-group">
-        <label>Reproduction Rate:</label>
-        <div class="reproduction-container">
-            <select id="reproductionPercent">
-                <option value="0%">0%</option>
-                <option value="25%">25%</option>
-                <option value="50%">50%</option>
-                <option value="75%">75%</option>
-                <option value="100%">100%</option>
-            </select>
-            <select id="reproductionDesc">
-                <option>Not reproducible.</option>
-                <option>Sporadic issue.</option>
-                <option>Inconsistently reproducible.</option>
-                <option>Mostly reproducible. Exact cause not fully pinpointed.</option>
-                <option selected>Consistently reproducible. Can reproduce every time attempted.</option>
-            </select>
-        </div>
-    </div>
+            <div class="form-group">
+                <label>Reproduction Rate:</label>
+                <select id="reproduction">
+                    <option value="100% - Consistently reproducible. Can reproduce every time attempted.">100% - Consistently reproducible. Can reproduce every time attempted.</option>
+                    <option value="75% - Mostly reproducible. Exact cause not fully pinpointed.">75% - Mostly reproducible. Exact cause not fully pinpointed.</option>
+                    <option value="50% - Inconsistently reproducible.">50% - Inconsistently reproducible.</option>
+                    <option value="25% - Sporadic issue.">25% - Sporadic issue.</option>
+                    <option value="0% - Not reproducible.">0% - Not reproducible.</option>
+                </select>
+            </div>
 
-    <div class="form-group">
-        <label for="severity">Severity:</label>
-        <select id="severity">
-            <option value="1">1 - Blocking Issue/Crash</option>
-            <option value="2">2 - Major Impact on Functionality</option>
-            <option value="3">3 - Minor Impact on Functionality</option>
-            <option value="4">4 - Cosmetic Issue/Typo</option>
-            <option value="5">5 - Feature Enhancement/Suggestion/Query</option>
-        </select>
-    </div>
+            <div class="form-group">
+                <label for="severity">Severity:</label>
+                <select id="severity">
+                    <option value="1">1 - Blocking Issue/Crash</option>
+                    <option value="2">2 - Major Impact on Functionality</option>
+                    <option value="3">3 - Minor Impact on Functionality</option>
+                    <option value="4">4 - Cosmetic Issue/Typo</option>
+                    <option value="5">5 - Feature Enhancement/Suggestion/Query</option>
+                </select>
+            </div>
 
-    <div id="saveIndicator" class="save-indicator" role="status" aria-live="polite"></div>
+            <div id="saveIndicator" class="save-indicator" role="status" aria-live="polite"></div>
+        </form>
+    </main>
 
-    <div class="button-container">
+    <footer class="button-group">
         <div class="split-button-group">
-            <button id="screenshotButton">Take Screenshot</button>
-            <button id="screenshotDropdownToggle">▼</button>
-            <div id="screenshotDropdown" class="screenshot-dropdown">
-                <button data-type="visible">Visible Area</button>
-                <button data-type="full">Full Page</button>
+            <button id="screenshotButton" aria-label="Take screenshot" aria-haspopup="true">
+                Take Screenshot
+            </button>
+            <button id="screenshotDropdownToggle" aria-label="Screenshot options">▼</button>
+            <div id="screenshotDropdown" class="screenshot-dropdown" role="menu">
+                <button data-type="visible" role="menuitem">Visible Area</button>
+                <button data-type="full" role="menuitem">Full Page</button>
             </div>
         </div>
-        <button id="copyButton" aria-label="Copy report to clipboard" tabindex="0">
+        <button id="copyButton" aria-label="Copy report to clipboard">
             Copy to Clipboard
         </button>
-        <button id="clearButton">Clear Form</button>
-    </div>
+        <button id="clearButton" aria-label="Clear form">Clear Form</button>
+    </footer>
 
-    <div id="screenshotProgress" class="progress-bar">
+    <div id="screenshotProgress" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div id="screenshotProgressFill" class="progress-bar-fill"></div>
     </div>
 
-    <div role="alert" aria-live="polite" id="copyStatus" class="status"></div>
-    <div role="alert" aria-live="polite" id="screenshotStatus" class="status"></div>
+    <div role="status" aria-live="polite" id="copyStatus" class="status"></div>
+    <div role="status" aria-live="polite" id="screenshotStatus" class="status"></div>
 
     <script src="popup.js"></script>
 </body>
