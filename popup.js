@@ -94,7 +94,7 @@ const FormManager = {
             scope: document.getElementById('scope')?.value || '',
             reproduction: document.getElementById('reproduction')?.value || '',
             severity: document.getElementById('severity')?.value || '',
-            version: document.getElementById('versionInput').value,
+            version: document.getElementById('versionInput')?.value || '',
             steps: [],
             environments: []
         };
@@ -224,7 +224,6 @@ const FormManager = {
         // Re-detect environment
         EnvironmentManager.detectEnvironment();
         
-        // Note: We're no longer clearing reproductionPercent
     },
 
     async loadSavedForm() {
@@ -298,7 +297,7 @@ const FormManager = {
         deleteButton.textContent = '×';
         deleteButton.className = 'delete-environment';
         
-        // Only show delete button if it's not the first environment
+        // Only show delete button if it's not the first field
         if (isInitial || container.children.length === 0) {
             deleteButton.style.display = 'none';
         } else {
@@ -306,7 +305,7 @@ const FormManager = {
         }
         
         deleteButton.addEventListener('click', () => {
-            // Prevent deletion of first environment
+            // Prevent deletion of first field
             if (container.children.length > 1 && envDiv !== container.firstElementChild) {
                 envDiv.remove();
                 FormStateManager.markDirty();
@@ -323,13 +322,13 @@ const FormManager = {
 
     getFormData() {
         const formData = {
-            title: document.getElementById('title')?.value || '',
-            observed: document.getElementById('observed')?.value || '',
-            expected: document.getElementById('expected')?.value || '',
+            title: document.getElementById('title')?.value?.trim() || '',
+            observed: document.getElementById('observed')?.value?.trim() || '',
+            expected: document.getElementById('expected')?.value?.trim() || '',
             scope: document.getElementById('scope')?.value || '',
             reproduction: document.getElementById('reproduction')?.value || '',
             severity: document.getElementById('severity')?.value || '',
-            version: document.getElementById('versionInput').value,
+            version: document.getElementById('versionInput')?.value || '',
             steps: [],
             environments: []
         };
@@ -402,13 +401,13 @@ const FormStateManager = {
 const KeyboardManager = {
     init() {
         document.addEventListener('keydown', async (e) => {
-            // Save functionality (keep existing)
+            // Save functionality
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 await this.saveReportToFile();
             }
             
-            // Updated copy functionality
+            // Copy functionality
             if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
                 const selectedText = window.getSelection().toString();
                 if (!selectedText) {
@@ -431,7 +430,7 @@ const KeyboardManager = {
                 }
             }
             
-            // Escape key handling (keep existing)
+            // Escape key handling 
             if (e.key === 'Escape') {
                 document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
             }
@@ -549,8 +548,12 @@ const CopyManager = {
 
         let observed = formData.observed.replace(/^Tester has observed that:\s*/, '');
         let expected = formData.expected.replace(/^It is expected:\s*/, '');
+        
+        // Get version directly from versionInput
+        const versionInput = document.getElementById('versionInput');
+        const versionText = versionInput?.value || 'Version not available';
 
-        // Modified steps handling
+        // Steps handling
         const steps = Array.from(document.getElementById('steps-container').querySelectorAll('.step-container'))
             .map(container => {
                 const number = container.querySelector('span').textContent;
@@ -562,18 +565,15 @@ const CopyManager = {
 
         const environments = formData.environments.filter(value => value.trim() !== '').join('\n');
 
-        const versionElement = document.getElementById('version');
-        const versionText = versionElement ? versionElement.textContent : 'Version not available';
-
         const bugReport = `${formData.title}\n\n` +
             `${observed}\n\n` +
             `${expected}\n\n` +
             `Steps to Reproduce:\n${steps}\n\n` +
             `Environment:\n${environments}\n\n` +
-            `Version: \n${versionText}\n\n` +
+            `Version:\n${versionText}\n\n` +
             `${formData.scope}\n\n` +
             `Reproduction Rate:\n${formData.reproduction}\n\n` +
-            `Severity: \n${severityText}`;
+            `Severity:\n${severityText}`;
 
         return bugReport;
     },
@@ -581,16 +581,16 @@ const CopyManager = {
     async copyToClipboard() {
         try {
             const bugReport = await this.generateReport();
-            console.log('Generated Bug Report:', bugReport); // Debug log
+            console.log('Generated Bug Report:', bugReport); 
             await navigator.clipboard.writeText(bugReport);
-            console.log('Copied to clipboard successfully'); // Debug log
+            console.log('Copied to clipboard successfully'); 
             const copyStatus = document.getElementById('copyStatus');
             copyStatus.textContent = 'Copied to clipboard!';
             copyStatus.style.color = '#4CAF50';
             copyStatus.style.display = 'block';
             setTimeout(() => copyStatus.style.display = 'none', 3000);
         } catch (err) {
-            console.error('Error copying to clipboard:', err); // Debug log
+            console.error('Error copying to clipboard:', err); 
             ErrorHandler.handle(err, 'Copy');
         }
     }
@@ -669,9 +669,9 @@ const EnvironmentManager = {
                 const { os, browserVersion, url } = envInfo[0].result;
                 const container = document.getElementById('environments-container');
                 
-                // Only auto-detect if no environments exist
+                // Only auto-detect if no fields exist
                 if (container.children.length === 0) {
-                    // Create first environment without delete button
+                    // Create first field  without delete button
                     FormManager.addEnvironment(true);
                     const envInput = container.querySelector('.environment-container:last-child input');
                     if (envInput) {
@@ -1242,32 +1242,33 @@ const ReportGenerator = {
         const formData = FormManager.getFormData();
         const severity = document.getElementById('severity');
         const severityText = severity.options[severity.selectedIndex].text;
-        const versionElement = document.getElementById('version');
-        const versionText = versionElement ? versionElement.textContent : 'Version not available';
+        
+        // Get version directly from versionInput
+        const versionInput = document.getElementById('versionInput');
+        const versionText = versionInput?.value || 'Version not available';
 
         // Get steps and filter out empty ones before joining, with proper numbering
         const nonEmptySteps = Array.from(document.querySelectorAll('.step-container'))
             .map(container => ({
                 description: container.querySelector('input').value.trim()
             }))
-            .filter(step => step.description)  // Only keep steps with content
-            .map((step, index) => `${index + 1} ${step.description}`)  // Number only the non-empty steps
+            .filter(step => step.description)
+            .map((step, index) => `${index + 1} ${step.description}`)
             .join('\n');
 
-        // Filter out empty environments (existing logic)
+        // Filter out empty environments 
         const environments = formData.environments
             .filter(env => env.trim())
-            .join(' - ');
+            .join('\n');
 
-        return `
-Title: ${formData.title}
+        return `${formData.title}
 
 Description:
 ${formData.observed}
 
 ${formData.expected}
 
-Steps to recreate:
+Steps to Reproduce:
 ${nonEmptySteps}
 
 Environment:
@@ -1278,16 +1279,17 @@ ${versionText}
 
 ${formData.scope}
 
-Reproduction Rate: ${formData.reproduction}
+Reproduction Rate:
+${formData.reproduction}
 
-Severity: ${severityText}
-`;
+Severity:
+${severityText}`;
     }
 };
 
 document.getElementById('appendTimeCheckbox').addEventListener('change', function() {
-    const versionElement = document.getElementById('version');
-    const currentUrl = versionElement.textContent.split(' - ')[0];
+    const versionInput = document.getElementById('versionInput');
+    const currentUrl = versionInput.value.split(' - ')[0];
     const currentDate = new Date().toLocaleDateString('en-GB', {
         year: 'numeric',
         month: '2-digit',
@@ -1300,9 +1302,9 @@ document.getElementById('appendTimeCheckbox').addEventListener('change', functio
             minute: '2-digit',
             second: '2-digit'
         });
-        versionElement.textContent = `${currentUrl} - ${currentDate} - ${currentTime}`;
+        versionInput.value = `${currentUrl} - ${currentDate} - ${currentTime}`;
     } else {
-        versionElement.textContent = `${currentUrl} - ${currentDate}`;
+        versionInput.value = `${currentUrl} - ${currentDate}`;
     }
 });
 
@@ -1549,7 +1551,6 @@ function updateVersionInformation(preserveExisting = false) {
 
 // Update event listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // ... existing code ...
     
     const urlSelect = document.getElementById('urlSelect');
     const appendTimeCheckbox = document.getElementById('appendTimeCheckbox');
@@ -1563,23 +1564,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Update the save/restore functionality to use the input value
 function saveFormData() {
-    // ... existing code ...
     const formData = {
-        // ... other form fields ...
         version: document.getElementById('versionInput').value,
         appendTime: document.getElementById('appendTimeCheckbox').checked
     };
-    // ... rest of save logic ...
 }
 
 function restoreFormData(data) {
-    // ... existing code ...
     if (data.version) {
         document.getElementById('versionInput').value = data.version;
     }
     if (data.appendTime !== undefined) {
         document.getElementById('appendTimeCheckbox').checked = data.appendTime;
     }
-    // ... rest of restore logic ...
 }
 
