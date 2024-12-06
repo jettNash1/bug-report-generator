@@ -226,14 +226,24 @@ If features aren't working:
 | Feature                | Chrome | Edge | Firefox |
 |-----------------------|--------|------|---------|
 | Basic Functionality   | ✅     | ✅   | ✅      |
-| Full Page Screenshots | ✅     | ✅   | ⚠️      |
+| Full Page Screenshots | ✅     | ✅   | ⚠️*     |
 | Clipboard Support     | ✅     | ✅   | ✅      |
 | Form Persistence      | ✅     | ✅   | ✅      |
 | Dark Mode            | ✅     | ✅   | ✅      |
 | Pop-out Window       | ✅     | ✅   | ✅      |
-| Auto-Updates          | ✅*    | ✅*  | ✅*     |
+| Auto-Updates          | ✅**   | ✅** | ✅**    |
 
-*When installed from official store
+*Firefox Screenshot Note: Due to browser API limitations, it's recommended to use Firefox's built-in screenshot tool:
+1. Press `Shift + F2` to open Firefox's command line
+2. Type `screenshot` followed by:
+   - `--fullpage` for full page capture
+   - `--clipboard` to copy to clipboard
+   - Or just press Enter to save visible area
+3. Alternatively, use Firefox's built-in screenshot tool:
+   - Right-click the page and select "Take Screenshot", or
+   - Press `Ctrl + Shift + S` (default Firefox shortcut)
+
+**When installed from official store
 
 ## Updating the Extension
 
@@ -284,7 +294,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Version History
 
-### v6.0 (Current)
+### v6.1 (Current)
+- Added multiple URL selection support
+- Enhanced keyboard shortcut handling
+- Improved Firefox compatibility notes
+- Added detailed timestamp controls
+- Enhanced form validation feedback
+- Improved error recovery system
+- Better accessibility implementation
+
+### v6.0
 - Enhanced error handling system
 - Improved auto-save functionality
 - Added form validation system

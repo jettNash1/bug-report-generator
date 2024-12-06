@@ -140,11 +140,7 @@ button:hover {
 .version-container {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
-    width: 100%;
-    border: none;
-    padding: 0;
-    box-sizing: border-box;
+    gap: 8px;
 }
 
 .url-select {
@@ -461,4 +457,14 @@ kbd {
     width: 100%;
     max-width: 100%;
     text-overflow: ellipsis;
+}
+
+.version-input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-color);
 }

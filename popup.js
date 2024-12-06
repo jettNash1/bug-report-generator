@@ -94,7 +94,7 @@ const FormManager = {
             scope: document.getElementById('scope')?.value || '',
             reproduction: document.getElementById('reproduction')?.value || '',
             severity: document.getElementById('severity')?.value || '',
-            version: document.getElementById('version')?.textContent || '',
+            version: document.getElementById('versionInput').value,
             steps: [],
             environments: []
         };
@@ -329,7 +329,7 @@ const FormManager = {
             scope: document.getElementById('scope')?.value || '',
             reproduction: document.getElementById('reproduction')?.value || '',
             severity: document.getElementById('severity')?.value || '',
-            version: document.getElementById('version')?.textContent || '',
+            version: document.getElementById('versionInput').value,
             steps: [],
             environments: []
         };
@@ -402,14 +402,36 @@ const FormStateManager = {
 const KeyboardManager = {
     init() {
         document.addEventListener('keydown', async (e) => {
+            // Save functionality (keep existing)
             if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                 e.preventDefault();
                 await this.saveReportToFile();
             }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !window.getSelection().toString()) {
-                e.preventDefault();
-                document.getElementById('copyButton').click();
+            
+            // Updated copy functionality
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                const selectedText = window.getSelection().toString();
+                if (!selectedText) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        await CopyManager.copyToClipboard();
+                        
+                        // Add visual feedback
+                        const status = document.getElementById('copyStatus');
+                        if (status) {
+                            status.textContent = 'Copied to clipboard!';
+                            status.style.color = '#4CAF50';
+                            status.style.display = 'block';
+                            setTimeout(() => status.style.display = 'none', 3000);
+                        }
+                    } catch (error) {
+                        ErrorHandler.handle(error, 'Copy to Clipboard');
+                    }
+                }
             }
+            
+            // Escape key handling (keep existing)
             if (e.key === 'Escape') {
                 document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
             }
@@ -418,60 +440,21 @@ const KeyboardManager = {
 
     async saveReportToFile() {
         try {
-            const formData = FormManager.getFormData();
-            const severity = document.getElementById('severity');
-            const severityText = severity.options[severity.selectedIndex].text;
-
-            // Remove any leading/trailing whitespace and ensure proper line breaks
-            const observed = formData.observed.trim().replace(/^Tester has observed that:\s*/, '');
-            const expected = formData.expected.trim().replace(/^It is expected:\s*/, '');
-            
-            // Format steps without indentation
-            const steps = formData.steps
-                .filter(step => step.description.trim()) // Remove empty steps
-                .map(step => `${step.number} ${step.description.trim()}`)
-                .join('\n');
-
-            // Build the report with explicit formatting
-            const report = 
-`${formData.title.trim()}
-
-${observed}
-
-${expected}
-
-Steps to Reproduce:
-${steps}
-
-Environment:
-${formData.environments.join(' - ')}
-
-Version:
-${document.getElementById('version')?.textContent || 'Version not available'}
-
-${formData.scope}
-
-Reproduction Rate:
-${formData.reproductionPercent} - ${formData.reproductionDesc}
-
-Severity:
-${formData.severity} - ${severityText}`; // Use template literal with backticks
-
-            const blob = new Blob([report], { type: 'text/plain' });
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = `bug-report-${timestamp}.txt`;
-            
+            const bugReport = await ReportGenerator.generateReport();
+            const blob = new Blob([bugReport], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            
             const downloadLink = document.createElement('a');
             downloadLink.href = url;
-            downloadLink.download = filename;
+            downloadLink.download = `bug-report-${timestamp}.txt`;
             document.body.appendChild(downloadLink);
             downloadLink.click();
             document.body.removeChild(downloadLink);
             URL.revokeObjectURL(url);
 
             const status = document.getElementById('copyStatus');
-            status.textContent = 'Report saved successfully!';
+            status.textContent = 'Report saved as text file!';
             status.style.color = '#4CAF50';
             status.style.display = 'block';
             setTimeout(() => status.style.display = 'none', 3000);
@@ -911,11 +894,22 @@ const initializeEventListeners = () => {
     const config = { childList: true, subtree: true };
     observer.observe(document.getElementById('steps-container'), config);
     observer.observe(document.getElementById('environments-container'), config);
+
+    // Prevent form submission on enter key
+    document.getElementById('bugReportForm').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+        }
+    });
 };
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        // Initialize KeyboardManager first
+        KeyboardManager.init();
+        
+        // Rest of the existing initializations
         await Promise.all([
             PopoutManager.initializePopout(),
             updatePopoutButtonState(),
@@ -1114,15 +1108,47 @@ document.getElementById('futureButton')?.addEventListener('click', async () => {
     const permissionOverlay = document.getElementById('permissionOverlay');
     permissionOverlay.classList.add('show');
 
-    // Update checkbox states
-    const permissions = await chrome.permissions.getAll();
-    
-    document.getElementById('activeTabPermission').checked = permissions.permissions.includes('activeTab');
-    document.getElementById('downloadsPermission').checked = permissions.permissions.includes('downloads');
-    document.getElementById('scriptingPermission').checked = permissions.permissions.includes('scripting');
-    document.getElementById('clipboardPermission').checked = permissions.permissions.includes('clipboardWrite');
-    document.getElementById('tabsPermission').checked = permissions.permissions.includes('tabs');
-    document.getElementById('windowsPermission').checked = permissions.permissions.includes('windows');
+    try {
+        // Check each permission individually
+        const permissionChecks = {
+            'activeTabPermission': await chrome.permissions.contains({ permissions: ['activeTab'] }),
+            'downloadsPermission': await chrome.permissions.contains({ permissions: ['downloads'] }),
+            'scriptingPermission': await chrome.permissions.contains({ permissions: ['scripting'] }),
+            'clipboardPermission': await chrome.permissions.contains({ permissions: ['clipboardWrite'] }),
+            'tabsPermission': await chrome.permissions.contains({ permissions: ['tabs'] }) // windows access is included
+        };
+
+        // Update checkbox states and disable granted permissions
+        Object.entries(permissionChecks).forEach(([id, hasPermission]) => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = hasPermission;
+                if (hasPermission) {
+                    checkbox.disabled = true;
+                    // Add helper text to explain why it's disabled
+                    const label = checkbox.closest('label');
+                    const small = label?.nextElementSibling;
+                    if (small) {
+                        small.textContent += ' (Granted permissions cannot be revoked)';
+                    }
+                }
+            }
+        });
+
+        // Add explanation text at the top of the permissions list
+        const permissionList = document.querySelector('.permission-list');
+        if (permissionList) {
+            const notice = document.createElement('div');
+            notice.className = 'permission-notice';
+            notice.textContent = 'Note: Once granted, permissions can only be revoked by uninstalling the extension.';
+            notice.style.color = '#666';
+            notice.style.marginBottom = '10px';
+            notice.style.fontSize = '0.9em';
+            permissionList.insertBefore(notice, permissionList.firstChild);
+        }
+    } catch (err) {
+        ErrorHandler.handle(err, 'Check Permissions');
+    }
 });
 
 document.getElementById('refreshButton')?.addEventListener('click', async () => {
@@ -1155,17 +1181,28 @@ document.querySelectorAll('.close-overlay').forEach(button => {
 document.querySelector('.save-permissions')?.addEventListener('click', async () => {
     try {
         const permissions = [];
-        const hostPermissions = [];
 
-        // Check each permission checkbox
-        if (document.getElementById('activeTabPermission').checked) permissions.push('activeTab');
-        if (document.getElementById('downloadsPermission').checked) permissions.push('downloads');
-        if (document.getElementById('scriptingPermission').checked) permissions.push('scripting');
-        if (document.getElementById('clipboardPermission').checked) permissions.push('clipboardWrite');
-        if (document.getElementById('tabsPermission').checked) permissions.push('tabs');
-        if (document.getElementById('windowsPermission').checked) permissions.push('windows');
+        // Only collect permissions that are checked but not yet granted
+        const checkboxes = document.querySelectorAll('.permission-item input[type="checkbox"]');
+        for (const checkbox of checkboxes) {
+            if (checkbox.checked && !checkbox.disabled) {
+                const permission = checkbox.id.replace('Permission', '');
+                // Special handling for clipboard permission
+                if (permission === 'clipboard') {
+                    permissions.push('clipboardWrite');
+                } else {
+                    permissions.push(permission);
+                }
+            }
+        }
 
-        // Request the permissions
+        if (permissions.length === 0) {
+            const overlay = document.getElementById('permissionOverlay');
+            overlay.classList.remove('show');
+            return;
+        }
+
+        // Request only new permissions
         const granted = await chrome.permissions.request({
             permissions: permissions,
             origins: ['<all_urls>']
@@ -1178,7 +1215,7 @@ document.querySelector('.save-permissions')?.addEventListener('click', async () 
             
             // Show success message
             const status = document.getElementById('copyStatus');
-            status.textContent = 'Permissions updated successfully!';
+            status.textContent = 'New permissions granted successfully!';
             status.style.color = '#4CAF50';
             status.style.display = 'block';
             setTimeout(() => status.style.display = 'none', 3000);
@@ -1186,10 +1223,17 @@ document.querySelector('.save-permissions')?.addEventListener('click', async () 
             // Refresh environment detection
             await EnvironmentManager.detectEnvironment();
         } else {
-            throw new Error('Permissions not granted');
+            throw new Error('New permissions were not granted');
         }
     } catch (err) {
         ErrorHandler.handle(err, 'Permission Update');
+        
+        // Show error message
+        const status = document.getElementById('copyStatus');
+        status.textContent = 'Failed to update permissions. Please try again.';
+        status.style.color = '#e74c3c';
+        status.style.display = 'block';
+        setTimeout(() => status.style.display = 'none', 3000);
     }
 });
 
@@ -1323,8 +1367,25 @@ const TabManager = {
                 select.appendChild(option);
             });
 
-            // Update version text with selected URL
-            this.updateVersionText(select.value);
+            // Initialize version input with the selected URL
+            const versionInput = document.getElementById('versionInput');
+            if (versionInput) {
+                const selectedUrl = select.value;
+                const currentDate = new Date().toLocaleDateString();
+                let versionText = `${selectedUrl} - ${currentDate}`;
+                
+                const appendTimeCheckbox = document.getElementById('appendTimeCheckbox');
+                if (appendTimeCheckbox?.checked) {
+                    const currentTime = new Date().toLocaleTimeString('en-GB', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    versionText = `${versionText} - ${currentTime}`;
+                }
+                
+                versionInput.value = versionText;
+            }
         } catch (err) {
             ErrorHandler.handle(err, 'Populate URL Dropdown');
         }
@@ -1349,7 +1410,7 @@ const TabManager = {
                 minute: '2-digit',
                 second: '2-digit'
             });
-            versionText += ` - ${currentTime}`;
+            versionText = `${versionText} - ${currentTime}`;
         }
         
         versionElement.textContent = versionText;
@@ -1459,4 +1520,66 @@ const FormValidation = {
         field.reportValidity();
     }
 };
+
+// Replace the existing version span handling with this new input handling
+function updateVersionInformation(preserveExisting = false) {
+    const urlSelect = document.getElementById('urlSelect');
+    const versionInput = document.getElementById('versionInput');
+    const appendTimeCheckbox = document.getElementById('appendTimeCheckbox');
+    
+    // If preserving existing content, extract the URL part from the current input
+    let selectedUrl = preserveExisting ? 
+        versionInput.value.split(' - ')[0] : 
+        urlSelect.value;
+    
+    const currentDate = new Date().toLocaleDateString();
+    let versionText = `${selectedUrl} - ${currentDate}`;
+    
+    if (appendTimeCheckbox.checked) {
+        const currentTime = new Date().toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        versionText = `${versionText} - ${currentTime}`;
+    }
+    
+    versionInput.value = versionText;
+}
+
+// Update event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // ... existing code ...
+    
+    const urlSelect = document.getElementById('urlSelect');
+    const appendTimeCheckbox = document.getElementById('appendTimeCheckbox');
+    
+    urlSelect.addEventListener('change', () => updateVersionInformation(false));
+    appendTimeCheckbox.addEventListener('change', () => updateVersionInformation(true));
+    
+    // Initial update
+    updateVersionInformation(false);
+});
+
+// Update the save/restore functionality to use the input value
+function saveFormData() {
+    // ... existing code ...
+    const formData = {
+        // ... other form fields ...
+        version: document.getElementById('versionInput').value,
+        appendTime: document.getElementById('appendTimeCheckbox').checked
+    };
+    // ... rest of save logic ...
+}
+
+function restoreFormData(data) {
+    // ... existing code ...
+    if (data.version) {
+        document.getElementById('versionInput').value = data.version;
+    }
+    if (data.appendTime !== undefined) {
+        document.getElementById('appendTimeCheckbox').checked = data.appendTime;
+    }
+    // ... rest of restore logic ...
+}
 

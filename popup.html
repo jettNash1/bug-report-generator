@@ -24,51 +24,51 @@
                 <div class="guide-column">
                     <h4>Core Features</h4>
                     <ul>
-                        <li><strong>Auto-Detection:</strong> Browser, OS, URL</li>
-                        <li><strong>Screenshots:</strong> Visible/full page</li>
-                        <li><strong>Auto-Save:</strong> Real-time persistence</li>
-                        <li><strong>Validation:</strong> Smart field checks</li>
+                        <li><strong>Auto-Detection:</strong> Browser, OS, URL, and timestamp</li>
+                        <li><strong>Screenshots:</strong> Visible area or full page capture</li>
+                        <li><strong>Auto-Save:</strong> Real-time form persistence</li>
+                        <li><strong>Multi-Format:</strong> Copy to clipboard or save as file</li>
                     </ul>
 
                     <h4>Required Fields</h4>
                     <ul>
-                        <li><strong>Title:</strong> Brief description</li>
-                        <li><strong>Description:</strong> Observed/Expected</li>
-                        <li><strong>Steps:</strong> Numbered steps</li>
-                        <li><strong>Environment:</strong> System details</li>
+                        <li><strong>Title:</strong> Brief, descriptive summary</li>
+                        <li><strong>Description:</strong> Observed and Expected behavior</li>
+                        <li><strong>Steps:</strong> Numbered reproduction steps</li>
+                        <li><strong>Environment:</strong> Auto-detected system details</li>
                     </ul>
 
-                    <h4>Controls</h4>
+                    <h4>Keyboard Shortcuts</h4>
                     <ul>
-                        <li><kbd>Ctrl</kbd>+<kbd>S</kbd> Save file</li>
-                        <li><kbd>Ctrl</kbd>+<kbd>C</kbd> Copy report</li>
-                        <li><kbd>Esc</kbd> Close overlay</li>
+                        <li><kbd>Ctrl</kbd>+<kbd>C</kbd> Copy report to clipboard</li>
+                        <li><kbd>Ctrl</kbd>+<kbd>S</kbd> Save report as file</li>
+                        <li><kbd>Esc</kbd> Close overlays</li>
                     </ul>
                 </div>
 
                 <div class="guide-column">
-                    <h4>Field Features</h4>
+                    <h4>Smart Features</h4>
                     <ul>
-                        <li>Protected first step/environment</li>
-                        <li>Sequential validation</li>
-                        <li>Auto-numbering steps</li>
-                        <li>Optional time stamps</li>
+                        <li>Protected first step/environment entry</li>
+                        <li>Automatic step numbering</li>
+                        <li>Optional timestamp inclusion</li>
+                        <li>Multiple URL selection</li>
                     </ul>
 
-                    <h4>Utility Buttons</h4>
+                    <h4>Utility Controls</h4>
                     <ul>
-                        <li>ℹ️ View this guide</li>
-                        <li>⤢ Pop-out window</li>
-                        <li>⚙️ Manage permissions</li>
-                        <li>↻ Refresh detection</li>
+                        <li><strong>ℹ️</strong> View this guide</li>
+                        <li><strong>⤢</strong> Pop-out to separate window</li>
+                        <li><strong>⚙️</strong> Manage permissions</li>
+                        <li><strong>↻</strong> Refresh environment detection</li>
                     </ul>
 
                     <h4>Additional Fields</h4>
                     <ul>
-                        <li><strong>Version:</strong> URL + date/time</li>
-                        <li><strong>Scope:</strong> Impact range</li>
-                        <li><strong>Reproduction:</strong> Success rate</li>
-                        <li><strong>Severity:</strong> Impact level</li>
+                        <li><strong>Version:</strong> URL + date/time stamp</li>
+                        <li><strong>Scope:</strong> Impact assessment</li>
+                        <li><strong>Reproduction Rate:</strong> 0-100% success rate</li>
+                        <li><strong>Severity:</strong> Impact level (1-5)</li>
                     </ul>
                 </div>
             </div>
@@ -112,16 +112,9 @@
                 <div class="permission-item">
                     <label>
                         <input type="checkbox" id="tabsPermission"> 
-                        Tabs Access
+                        Tabs & Windows Access
                     </label>
-                    <small>Required for window management and screenshots</small>
-                </div>
-                <div class="permission-item">
-                    <label>
-                        <input type="checkbox" id="windowsPermission"> 
-                        Windows Access
-                    </label>
-                    <small>Required for pop-out functionality</small>
+                    <small>Required for window management, pop-out functionality and screenshots</small>
                 </div>
             </div>
             <button class="save-permissions">Save Permissions</button>
@@ -171,6 +164,8 @@
                     <option>Believed to only affect desktop environments.</option>
                     <option>Believed to only affect mobile environments.</option>
                     <option>Believed to only affect tablet environments.</option>
+                    <option>Believed to only affect Android environments.</option>
+                    <option>Believed to only affect iOS environments.</option>
                     <option>Global Desktop.</option>
                     <option>Global Mobile.</option>
                     <option>Global Tablet.</option>
@@ -181,7 +176,7 @@
                 <fieldset class="version-container">
                     <legend>Version Information</legend>
                     <select id="urlSelect" class="url-select" aria-label="Select URL"></select>
-                    <span id="version" aria-live="polite"></span>
+                    <input type="text" id="versionInput" aria-label="Version information" class="version-input">
                     <div class="version-toggle">
                         <input type="checkbox" id="appendTimeCheckbox"> 
                         <label for="appendTimeCheckbox">Append current time</label>
