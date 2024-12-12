@@ -1256,9 +1256,17 @@ const ReportGenerator = {
             .map((step, index) => `${index + 1} ${step.description}`)
             .join('\n');
 
-        // Filter out empty environments 
+        // Filter out empty environments and format them
         const environments = formData.environments
             .filter(env => env.trim())
+            .map((env, index) => {
+                if (index === 0) {
+                    return env; // First environment
+                } else if (index === 1) {
+                    return `This issue is known to occur on:\n${env}`; // Second environment
+                }
+                return env; // Subsequent environments
+            })
             .join('\n');
 
         return `${formData.title}
@@ -1272,16 +1280,17 @@ Steps to Reproduce:
 ${nonEmptySteps}
 
 Environment:
+Reported against:
 ${environments}
-
-Version:
-${versionText}
 
 ${formData.scope}
 
 Reproduction Rate:
 ${formData.reproduction}
+Supporting Material:
 
+Version:
+${versionText}
 Severity:
 ${severityText}`;
     }
