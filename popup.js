@@ -553,14 +553,13 @@ const CopyManager = {
         const versionInput = document.getElementById('versionInput');
         const versionText = versionInput?.value || 'Version not available';
 
-        // Steps handling
-        const steps = Array.from(document.getElementById('steps-container').querySelectorAll('.step-container'))
-            .map(container => {
-                const number = container.querySelector('span').textContent;
-                const description = container.querySelector('input').value.trim();
-                return description ? `${number} ${description}` : null;
-            })
-            .filter(step => step !== null)
+        // Get steps and filter out empty ones before joining, with proper numbering
+        const nonEmptySteps = Array.from(document.querySelectorAll('.step-container'))
+            .map(container => ({
+                description: container.querySelector('input').value.trim()
+            }))
+            .filter(step => step.description)
+            .map((step, index) => `${index + 1}. ${step.description}`)
             .join('\n');
 
         const environments = formData.environments.filter(value => value.trim() !== '').join('\n');
@@ -568,7 +567,7 @@ const CopyManager = {
         const bugReport = `${formData.title}\n\n` +
             `${observed}\n\n` +
             `${expected}\n\n` +
-            `Steps to Reproduce:\n${steps}\n\n` +
+            `Steps to Reproduce:\n${nonEmptySteps}\n\n` +
             `Environment:\n${environments}\n\n` +
             `Version:\n${versionText}\n\n` +
             `${formData.scope}\n\n` +
@@ -1253,7 +1252,7 @@ const ReportGenerator = {
                 description: container.querySelector('input').value.trim()
             }))
             .filter(step => step.description)
-            .map((step, index) => `${index + 1} ${step.description}`)
+            .map((step, index) => `${index + 1}. ${step.description}`)
             .join('\n');
 
         // Filter out empty environments and format them
