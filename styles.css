@@ -46,6 +46,10 @@ body {
     position: relative;
 }
 
+body.overlay-open {
+    overflow: hidden;
+}
+
 /* Form Elements */
 .form-group:first-of-type {
     margin-top: var(--spacing-lg);

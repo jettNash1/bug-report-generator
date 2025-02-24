@@ -432,7 +432,10 @@ const KeyboardManager = {
             
             // Escape key handling 
             if (e.key === 'Escape') {
-                document.querySelectorAll('.show').forEach(el => el.classList.remove('show'));
+                document.querySelectorAll('.show').forEach(el => {
+                    el.classList.remove('show');
+                    document.body.classList.remove('overlay-open');
+                });
             }
         });
     },
@@ -1101,11 +1104,13 @@ document.querySelectorAll('#screenshotDropdown button').forEach(button => {
 document.getElementById('infoButton')?.addEventListener('click', () => {
     const infoOverlay = document.getElementById('infoOverlay');
     infoOverlay.classList.add('show');
+    document.body.classList.add('overlay-open');
 });
 
 document.getElementById('futureButton')?.addEventListener('click', async () => {
     const permissionOverlay = document.getElementById('permissionOverlay');
     permissionOverlay.classList.add('show');
+    document.body.classList.add('overlay-open');
 
     try {
         // Check each permission individually
@@ -1173,6 +1178,7 @@ document.querySelectorAll('.close-overlay').forEach(button => {
         const overlay = button.closest('.overlay');
         if (overlay) {
             overlay.classList.remove('show');
+            document.body.classList.remove('overlay-open');
         }
     });
 });
