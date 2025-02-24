@@ -1460,8 +1460,8 @@ const PopoutManager = {
             const popout = await chrome.windows.create({
                 url: 'popup.html?popout=true',
                 type: 'popup',
-                width: 600,
-                height: 800
+                width: 800,
+                height: 900
             });
 
             await chrome.storage.local.set({ 'popoutWindowId': popout.id });
@@ -1492,8 +1492,8 @@ const WindowManager = {
             const newWindow = await chrome.windows.create({
                 url: 'popup.html',
                 type: 'popup',
-                width: 500,
-                height: 800,
+                width: 800,
+                height: 900,
                 left: currentWindow.left + 50,
                 top: currentWindow.top + 50,
                 focused: true
