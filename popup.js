@@ -1592,4 +1592,3 @@ function restoreFormData(data) {
         document.getElementById('appendTimeCheckbox').checked = data.appendTime;
     }
 }
-
